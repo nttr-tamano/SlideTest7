@@ -60,12 +60,6 @@ public class MainActivity extends AppCompatActivity
     Bitmap mBitmap;
     CustomView[] cv = new CustomView[4];
 
-//    final int ANIME_NONE = 0;
-//    final int ANIME_UP = 3;     // 値はフリック方向と統一すること
-//    final int ANIME_LEFT = 4;
-//    final int ANIME_RIGHT = 2;
-//    final int ANIME_DOWN = 1;
-
     int mAnimeDirection = DIRECTION_NONE;   // アニメーション方向
     int mAnimeSrcIndex = SELECT_NONE;        // アニメーションの移動元のID
     int mAnimeDestIndex = SELECT_NONE;       // アニメーションの移動先のID
@@ -82,6 +76,7 @@ public class MainActivity extends AppCompatActivity
 
         // SurfaceViewの初期設定
         mSurfaceView = (TranslationSurfaceView) findViewById(R.id.surfaceView);
+
 //        mHolder = mSurfaceView.getHolder();
 //        // コールバック設定
 //        mHolder.addCallback(this);
@@ -132,7 +127,7 @@ public class MainActivity extends AppCompatActivity
                         lpPiece.weight = 1.0f;
                         //ImageView iv = new ImageView(this);
                         CustomView iv = new CustomView(MainActivity.this);
-                        iv.setVisibility(View.INVISIBLE);
+                        iv.setVisibility(View.VISIBLE);
                         // http://blog.lciel.jp/blog/2013/12/16/android-capture-view-image/
                         iv.setDrawingCacheEnabled(true);             // キャッシュを取得する設定にする
                         iv.destroyDrawingCache();                    // キャッシュをクリア
@@ -163,7 +158,6 @@ public class MainActivity extends AppCompatActivity
             }
 
         })).start();
-
     }
 
     // タッチイベントにジェスチャー受付を定義
@@ -190,6 +184,11 @@ public class MainActivity extends AppCompatActivity
             int direction  = DIRECTION_NONE;
 
             int flingedViewIndex = -1;
+
+            // onDrawを受け取る設定
+            // https://developer.android.com/reference/android/view/View.html#setWillNotDraw%28boolean%29
+            // ActivityのOnCreate()では早すぎて、ぬるぽ
+            mSurfaceView.setWillNotDraw(false);
 
             try {
 
@@ -286,189 +285,115 @@ public class MainActivity extends AppCompatActivity
                 //mAnimator = ValueAnimator.ofFloat(0f,1f);
                 mAnimator = mSurfaceView.getmAnimator();
 
-//                // Animator開始終了時の処理を記載
-//                // https://qiita.com/mattak/items/aaf699a046b1a86d8b66
-//                mAnimator.addListener(new Animator.AnimatorListener() {
+                // アニメーション時間
+                mAnimator.setDuration(300);
+
+                // 移動元の画像の取得
+                CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
+                Bitmap bitmap_work = srcImageView.getDrawingCache();   // キャッシュを作成して取得する
+                // ImageViewのサイズに合わせる
+                mBitmap = Bitmap.createScaledBitmap(bitmap_work, srcImageView.getMeasuredWidth(),
+                        srcImageView.getMeasuredHeight(), false);
+
+                // 描画開始位置
+                int srcX = srcImageView.getLeft();
+                // Y座標は親View(横長LinearLayout)から取得
+                // http://ichitcltk.hustle.ne.jp/gudon2/index.php?pageType=file&id=Android059_ViewTree
+                int srcY = ((View) srcImageView.getParent()).getTop();
+                // Log.d("location", "imageView X=" + srcX + ",Y=" + srcY);
+
+                // Customviewの各パネルのマージンの分だけ表示位置を補正
+                // 縦が不要なのは、余白なしの上位のLinearLayoutの座標を使用しているため
+                //srcX += PIECE_MARGIN;                   // マージン補正
+                srcY += PIECE_MARGIN;                   // マージン補正
+
+                // 移動先座標。switch caseで制御
+                int destX = 0;
+                int destY = 0;
+//                int deltaX = 0;
+//                int deltaY = 0;
+
+                // X方向・Y方向の移動距離
+                switch (mAnimeDirection) {
+                    case DIRECTION_TOP:
+                        destX = srcX;
+                        destY = srcY - ((View) srcImageView.getParent()).getHeight();
+                        //destY -= PIECE_MARGIN * 0;      // マージン補正
+//                        deltaX = 0;
+//                        deltaY = -((View) srcImageView.getParent()).getHeight();
+                        break;
+
+                    case DIRECTION_LEFT:
+                        destX = srcX - srcImageView.getWidth();
+                        destX -= PIECE_MARGIN * 2;      // マージン補正
+                        destY = srcY;
+//                        deltaX = -srcImageView.getWidth();
+//                        deltaY = 0;
+                        break;
+
+                    case DIRECTION_RIGHT:
+                        destX = srcX + srcImageView.getWidth();
+                        destX += PIECE_MARGIN * 2;      // マージン補正
+                        destY = srcY;
+//                        deltaX = srcImageView.getWidth();
+//                        deltaY = 0;
+                        break;
+
+                    case DIRECTION_BOTTOM:
+                        destX = srcX;
+                        destY = srcY + ((View) srcImageView.getParent()).getHeight();
+                        //destY += PIECE_MARGIN * 0;      // マージン補正
+//                        deltaX = 0;
+//                        deltaY = ((View) srcImageView.getParent()).getHeight();
+                        break;
+                }
+
+                //srcX += PIECE_MARGIN;
+//                srcY += PIECE_MARGIN;
+                //destX += PIECE_MARGIN;
+//                destY += PIECE_MARGIN;
+
+                // アニメーション情報を設定
+                mSurfaceView.setAnimationInfo(mBitmap,srcX,srcY,destX,destY);
+
+//                mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
 //                    @Override
-//                    public void onAnimationStart(Animator animation) {
+//                    public void onAnimationUpdate(ValueAnimator animation) {
+//                        //Log.d(MainActivity.class.getSimpleName(), "onAnimationUpdate");
+//                        // Log.d()が効かない
+//                        while(isAttached) {
 //
-//                    }
 //
-//                    @Override
-//                    public void onAnimationEnd(Animator animation) {
 //
-//                    }
+////                            // 移動先ImageViewの表示
+////                            final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
+////                            destImageView.post(new Runnable() {
+////                                @Override
+////                                public void run() {
+////                                    destImageView.setVisibility(View.VISIBLE);
+////                                }
+////                            });
+////
+////                            // http://boco.hp3200.com/game-devs/view/3.html
+////                            // アニメーション終了後ウェイト処理
+////                            try {
+////                                Thread.sleep(ANIME_WAIT_MSEC);
+////                            } catch (InterruptedException e) {
+////                            }
+////
+////                            // SurfaceViewのクリア
+////                            Canvas canvas = mHolder.lockCanvas();
+////                            // キャンバス（背景）を透過
+////                            // https://qiita.com/androhi/items/a1ed36d3743d5b8cb771
+////                            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
 //
-//                    @Override
-//                    public void onAnimationCancel(Animator animation) {
+////                            mHolder.unlockCanvasAndPost(canvas);
 //
-//                    }
-//
-//                    @Override
-//                    public void onAnimationRepeat(Animator animation) {
-//
+//                            // スレッド終了
+//                            isAttached = false;
+//                        }
 //                    }
 //                });
-
-                // アニメーション時間
-                mAnimator.setDuration(1000);
-                mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                    @Override
-                    public void onAnimationUpdate(ValueAnimator animation) {
-                        //Log.d(MainActivity.class.getSimpleName(), "onAnimationUpdate");
-                        // Log.d()が効かない
-                        while(isAttached) {
-                            final CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
-
-                            Bitmap bitmap_work = srcImageView.getDrawingCache();   // キャッシュを作成して取得する
-                            // ImageViewのサイズに合わせる
-                            mBitmap = Bitmap.createScaledBitmap(bitmap_work, srcImageView.getMeasuredWidth(),
-                                    srcImageView.getMeasuredHeight(), false);
-
-                            // 描画開始位置
-                            int srcX = srcImageView.getLeft();
-                            // Y座標は親View(横長LinearLayout)から取得
-                            // http://ichitcltk.hustle.ne.jp/gudon2/index.php?pageType=file&id=Android059_ViewTree
-                            int srcY = ((View) srcImageView.getParent()).getTop();
-                            // Log.d("location", "imageView X=" + srcX + ",Y=" + srcY);
-
-//                            // 移動元ImageViewの画像を非表示にする
-//                            srcImageView.post(new Runnable() {
-//                                @Override
-//                                public void run() {
-//                                    //srcImageView.setImageBitmap(null);
-//                                    srcImageView.setVisibility(View.INVISIBLE);
-//                                }
-//                            });
-
-//                            // 移動先ImageViewに画像を書き込む
-//                            final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
-//                            destImageView.post(new Runnable() {
-//                                @Override
-//                                public void run() {
-//                                    destImageView.setImageBitmap(mBitmap);
-//                                }
-//                            });
-
-                            // 移動先座標。switch caseで制御
-                            int destX = 0;
-                            int destY = 0;
-                            int deltaX = 0;
-                            int deltaY = 0;
-
-                            switch (mAnimeDirection) {
-                                case DIRECTION_TOP:
-                                    destX = srcX;
-                                    destY = srcY - ((View) srcImageView.getParent()).getHeight();
-                                    deltaX = 0;
-                                    deltaY = -((View) srcImageView.getParent()).getHeight() / ANIME_FRAME;
-                                    break;
-
-                                case DIRECTION_LEFT:
-                                    destX = srcX - srcImageView.getWidth();
-                                    destY = srcY;
-                                    deltaX = -srcImageView.getWidth() / ANIME_FRAME;
-                                    deltaY = 0;
-                                    break;
-
-                                case DIRECTION_RIGHT:
-                                    destX = srcX + srcImageView.getWidth();
-                                    destY = srcY;
-                                    deltaX = srcImageView.getWidth() / ANIME_FRAME;
-                                    deltaY = 0;
-                                    break;
-
-                                case DIRECTION_BOTTOM:
-                                    destX = srcX;
-                                    destY = srcY + ((View) srcImageView.getParent()).getHeight();
-                                    deltaX = 0;
-                                    deltaY = ((View) srcImageView.getParent()).getHeight() / ANIME_FRAME;
-                                    break;
-                            }
-
-                            // Customviewの各パネルのマージンの分だけ表示位置を補正
-                            // 縦が不要なのは、余白なしの上位のLinearLayoutの座標を使用しているため
-                            //srcX += PIECE_MARGIN;
-                            srcY += PIECE_MARGIN;
-                            //destX += PIECE_MARGIN;
-                            destY += PIECE_MARGIN;
-
-                            // アニメーションのループ
-                            // int型を比較しており、値の補正を行っているため、座標一致で終了が可能
-                            while (srcY != destY || srcX != destX) {
-
-                                // 移動
-                                // 左右へ
-                                srcX += deltaX;
-                                // 上下へ
-                                srcY += deltaY;
-                                //Log.d("thread","1 srcX="+srcX+" srcY="+srcY);
-
-                                // 移動先を通り過ぎたら、移動先へ補正
-                                if (deltaY > 0 && srcY > destY) {           // 下
-                                    srcY = destY;
-                                } else if ( deltaY < 0 && srcY < destY ) {  // 上
-                                    srcY = destY;
-                                }
-                                if (deltaX > 0 && srcX > destX) {           // 右
-                                    srcX = destX;
-                                } else if (deltaX < 0 && srcX < destX) {    // 左
-                                    srcX = destX;
-                                }
-                                //Log.d("thread","2 srcX="+srcX+" srcY="+srcY);
-
-                                mSurfaceView.setAnimationInfo(Bitmap,srcX,srcY,deltaX,deltaY);
-
-
-                                // 次の描画
-                                Canvas canvas = mHolder.lockCanvas();
-                                // キャンバス（背景）を透過
-                                // https://qiita.com/androhi/items/a1ed36d3743d5b8cb771
-                                canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-                                // 画像を描画
-                                Paint p = new Paint();
-                                canvas.drawBitmap(mBitmap, srcX, srcY, p);
-                                // 描画終了
-                                mHolder.unlockCanvasAndPost(canvas);
-
-//                                // http://boco.hp3200.com/game-devs/view/3.html
-//                                //ウェイト処理
-//                                try {
-//                                    Thread.sleep(ANIME_WAIT_MSEC);
-//                                } catch (InterruptedException e) {
-//                                }
-
-                            }
-
-                            // 移動先ImageViewの表示
-                            final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
-                            destImageView.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    destImageView.setVisibility(View.VISIBLE);
-                                }
-                            });
-
-                            // http://boco.hp3200.com/game-devs/view/3.html
-                            // アニメーション終了後ウェイト処理
-                            try {
-                                Thread.sleep(ANIME_WAIT_MSEC);
-                            } catch (InterruptedException e) {
-                            }
-
-                            // SurfaceViewのクリア
-                            Canvas canvas = mHolder.lockCanvas();
-                            // キャンバス（背景）を透過
-                            // https://qiita.com/androhi/items/a1ed36d3743d5b8cb771
-                            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-
-                            mHolder.unlockCanvasAndPost(canvas);
-
-                            // スレッド終了
-                            isAttached = false;
-                        }
-                    }
-                });
             }
             // 移動元ImageViewの画像を非表示にする
             final CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
@@ -478,13 +403,23 @@ public class MainActivity extends AppCompatActivity
             final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
             destImageView.setImageBitmap(mBitmap);
 
-            // アニメーション終了後ウェイト処理
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-            }
+//            // アニメーション終了後ウェイト処理
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//            }
 
             mAnimator.start();
+
+            // 移動先ImageViewの表示
+//            //final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
+//            destImageView.post(new Runnable() {
+//                @Override
+//                public void run() {
+                    destImageView.setVisibility(View.VISIBLE);
+//                }
+//            });
+
             /*
             // スレッド排他制御。起動していなければスレッドスタート
             if (mThread == null || mThread.isAlive() == false) {

@@ -9,6 +9,7 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -47,13 +48,14 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
         // 一番手前に表示
         setZOrderOnTop(true);
 
+
         // ValueAnimatorの初期設定
         mAnimator = ValueAnimator.ofFloat(0.F, 1.F);
         mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
-                //TODO
                 invalidate();
+                //Log.d("onAnimateUpdate","invalidate()");
             }
         });
 
@@ -61,12 +63,14 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
 
     @Override
     protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
+        //super.onDraw(canvas);
 
         // 描画する座標(矩形の左上)の決定
         // mAnimator.getAnimatedValue() == 0..1
-        int drawX = (int)(mSrcX + (float)mAnimator.getAnimatedValue() * mDeltaX);
-        int drawY = (int)(mSrcY + (float)mAnimator.getAnimatedValue() * mDeltaY);
+        float animeVal = (float)mAnimator.getAnimatedValue();
+
+        int drawX = (int)(mSrcX + animeVal * mDeltaX);
+        int drawY = (int)(mSrcY + animeVal * mDeltaY);
 
         // 行き過ぎの補正（しなくていい？）
 
@@ -77,7 +81,9 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
         Paint p = new Paint();
         canvas.drawBitmap(mBitmap, drawX, drawY, p);
         // 描画終了
-        mHolder.unlockCanvasAndPost(canvas);
+        //mHolder.unlockCanvasAndPost(canvas);
+
+        //Log.d("onDraw","animeVal="+animeVal);
     }
 
     // SurfaceView生成時は、透過させる
@@ -124,6 +130,7 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
         // 移動距離も計算
         this.mDeltaX = mDestX - mSrcX;
         this.mDeltaY = mDestY - mSrcY;
+        Log.d("setAnimationInfo","mSrcX="+mSrcX+",mSrcY="+mSrcY+",mDeltaX="+mDeltaX+",mDeltaY="+mDeltaY);
 
     }
 
