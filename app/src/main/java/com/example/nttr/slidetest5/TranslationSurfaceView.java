@@ -37,17 +37,40 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
     // コンストラクタ
     // activity_main.xml に配置利用を想定
     // http://ojed.hatenablog.com/entry/2015/12/05/161013
+    // https://qiita.com/androhi/items/f5870a27b6e0a4fd5c3d
+    public TranslationSurfaceView(Context context) {
+        super(context);
+        initialize();
+    }
+
     public TranslationSurfaceView(Context context, AttributeSet attr) {
         super(context, attr);
+        initialize();
+    }
 
+    // コンストラクタの共通部分を別関数化
+    private void initialize() {
         mHolder = getHolder();
+
+        // 透過
+        //mHolder.setFormat(PixelFormat.TRANSPARENT);
+        mHolder.setFormat(PixelFormat.TRANSLUCENT);
+
         // コールバック設定
         mHolder.addCallback(this);
-        // 透過
-        mHolder.setFormat(PixelFormat.TRANSLUCENT);
+
+        //// フォーカス可
+        //setFocusable(true);
+
+        // 背景を消す？
+        // https://groups.google.com/forum/#!topic/android-group-japan/fQ10g8EgxNk
+        //setAlpha(1.0F);
+        setAlpha(0.99F); //180204: 要確認。透過を1にすると、背景が真っ黒になる
+        setBackgroundColor(0);
+        //setBackground(null);
+
         // 一番手前に表示
         setZOrderOnTop(true);
-
 
         // ValueAnimatorの初期設定
         mAnimator = ValueAnimator.ofFloat(0.F, 1.F);
@@ -58,7 +81,6 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
                 //Log.d("onAnimateUpdate","invalidate()");
             }
         });
-
     }
 
     @Override
@@ -79,7 +101,10 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
         canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
         // 画像を描画
         Paint p = new Paint();
-        canvas.drawBitmap(mBitmap, drawX, drawY, p);
+        if (mBitmap != null) {
+            canvas.drawBitmap(mBitmap, drawX, drawY, p);
+        }
+
         // 描画終了
         //mHolder.unlockCanvasAndPost(canvas);
 

@@ -1,10 +1,13 @@
 package com.example.nttr.slidetest5;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -60,9 +63,11 @@ public class MainActivity extends AppCompatActivity
     Bitmap mBitmap;
     CustomView[] cv = new CustomView[4];
 
-    int mAnimeDirection = DIRECTION_NONE;   // アニメーション方向
+    int mAnimeDirection = DIRECTION_NONE;    // アニメーション方向
     int mAnimeSrcIndex = SELECT_NONE;        // アニメーションの移動元のID
     int mAnimeDestIndex = SELECT_NONE;       // アニメーションの移動先のID
+
+    final int ANIME_DURATION = 300;
 
     // アニメーション時間決定用
     // ANIME_FRAME * ANIME_WAIT_MSEC / 1000 [sec] がアニメーション時間
@@ -127,7 +132,8 @@ public class MainActivity extends AppCompatActivity
                         lpPiece.weight = 1.0f;
                         //ImageView iv = new ImageView(this);
                         CustomView iv = new CustomView(MainActivity.this);
-                        iv.setVisibility(View.VISIBLE);
+                        //iv.setVisibility(View.VISIBLE);   // デバッグ用。最初から表示
+                        iv.setVisibility(View.INVISIBLE);
                         // http://blog.lciel.jp/blog/2013/12/16/android-capture-view-image/
                         iv.setDrawingCacheEnabled(true);             // キャッシュを取得する設定にする
                         iv.destroyDrawingCache();                    // キャッシュをクリア
@@ -286,7 +292,7 @@ public class MainActivity extends AppCompatActivity
                 mAnimator = mSurfaceView.getmAnimator();
 
                 // アニメーション時間
-                mAnimator.setDuration(300);
+                mAnimator.setDuration(ANIME_DURATION);
 
                 // 移動元の画像の取得
                 CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
@@ -395,20 +401,33 @@ public class MainActivity extends AppCompatActivity
 //                    }
 //                });
             }
-            // 移動元ImageViewの画像を非表示にする
-            final CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
-            srcImageView.setVisibility(View.INVISIBLE);
 
-            // 移動先ImageViewに画像を書き込む
-            final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
-            destImageView.setImageBitmap(mBitmap);
+            // アニメーション開始前・終了後の処理をコールバックに追加
+            mAnimator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                    super.onAnimationStart(animation);
+                    // 移動元ImageViewの画像を非表示にする
+                    final CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
+                    srcImageView.setVisibility(View.INVISIBLE);
 
-//            // アニメーション終了後ウェイト処理
-//            try {
-//                Thread.sleep(1000);
-//            } catch (InterruptedException e) {
-//            }
+                    // 移動先ImageViewに画像を書き込む
+                    final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
+                    destImageView.setImageBitmap(mBitmap);
+                }
 
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
+                    //destImageView.post(new Runnable() {
+                    //    @Override
+                    //    public void run() {
+                            destImageView.setVisibility(View.VISIBLE);
+                    //    }
+                    //});
+                    super.onAnimationEnd(animation);
+                }
+            });
             mAnimator.start();
 
             // 移動先ImageViewの表示
@@ -416,7 +435,7 @@ public class MainActivity extends AppCompatActivity
 //            destImageView.post(new Runnable() {
 //                @Override
 //                public void run() {
-                    destImageView.setVisibility(View.VISIBLE);
+//                    destImageView.setVisibility(View.VISIBLE);
 //                }
 //            });
 
