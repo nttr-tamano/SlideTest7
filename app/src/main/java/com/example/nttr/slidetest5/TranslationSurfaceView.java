@@ -87,6 +87,10 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
     protected void onDraw(Canvas canvas) {
         //super.onDraw(canvas);
 
+        if ((mAnimator == null) || (!mAnimator.isRunning())) {
+            return;
+        }
+
         // 描画する座標(矩形の左上)の決定
         // mAnimator.getAnimatedValue() == 0..1
         float animeVal = (float)mAnimator.getAnimatedValue();
@@ -127,14 +131,14 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
+        //initialize();
     }
 
     // SurfaceView終了時
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        isAttached = false;
-        mAnimator = null;
+        //isAttached = false;
+        //mAnimator = null;
         // mThread = null; //スレッドを終了
     }
 
@@ -158,6 +162,7 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
         Log.d("setAnimationInfo","mSrcX="+mSrcX+",mSrcY="+mSrcY+",mDeltaX="+mDeltaX+",mDeltaY="+mDeltaY);
 
     }
+
 
 
 }

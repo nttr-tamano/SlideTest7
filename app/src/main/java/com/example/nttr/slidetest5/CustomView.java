@@ -17,8 +17,11 @@ import java.util.Arrays;
 
 public class CustomView extends android.support.v7.widget.AppCompatImageView {
 
-    final int UNDEFINED_RESOURCE = 0;
-    private Paint paint = new Paint();
+    // クラスのpublicな定数
+    //https://www.sejuku.net/blog/20977
+    public static final int UNDEFINED_RESOURCE = 0;
+    private int mBackgroundColor = Color.CYAN;
+    //private Paint mPaint = new Paint();
 
     // View上に、最大4つの画像を貼り付け予定
     private final int BITMAP_COUNT = 4;
@@ -41,18 +44,19 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
 
         // https://donsyoku.com/zakki/java-initialization-arrays-fill.html
         Arrays.fill(mResources,UNDEFINED_RESOURCE);
+        Arrays.fill(mBitmaps,null);
 
-        // 画像を入れる(=true)か否か(=false)
-        if (isImages) {
-            mResources[1] = R.drawable.arrow_right;
-            mResources[3] = R.drawable.arrow_left;
-
-            // 画像読込（AccBall参照）
-            mBitmaps[1] = BitmapFactory.decodeResource(getResources(),mResources[1]);
-
-            // 画像読込（AccBall参照）
-            mBitmaps[3] = BitmapFactory.decodeResource(getResources(),mResources[3]);
-        }
+//        // 画像を入れる(=true)か否か(=false)
+//        if (isImages) {
+//            mResources[1] = R.drawable.arrow_right;
+//            mResources[3] = R.drawable.arrow_left;
+//
+//            // 画像読込（AccBall参照）
+//            mBitmaps[1] = BitmapFactory.decodeResource(getResources(),mResources[1]);
+//
+//            // 画像読込（AccBall参照）
+//            mBitmaps[3] = BitmapFactory.decodeResource(getResources(),mResources[3]);
+//        }
     }
 
     @Override
@@ -70,24 +74,44 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
         int viewWidthHalf = viewWidth / 2;
         int viewHeightHalf = viewHeight / 2;
 
-        canvas.drawColor(Color.CYAN);
+        Paint mPaint = new Paint();
+        canvas.drawColor(mBackgroundColor);
 
         // ビュー内の4箇所（以上）に、配置すべき画像情報を決定して配置する（予定）
+//        int i=1;
+//        if (mBitmaps[i] != null) {
+//            // サイズ補正（AccBall参照）
+//            bitmapWork[i] = Bitmap.createScaledBitmap(mBitmaps[i],viewWidthHalf,viewHeightHalf,false);
+//            // View上に描画
+//            canvas.drawBitmap(bitmapWork[i],viewWidthHalf,0,mPaint);
+//        }
+//
+//        i=3;
+//        if (mBitmaps[i] != null) {
+//            // サイズ補正（AccBall参照）
+//            bitmapWork[i] = Bitmap.createScaledBitmap(mBitmaps[i],
+//                    viewWidthHalf,viewHeightHalf,false);
+//            // View上に描画
+//            canvas.drawBitmap(bitmapWork[i],0,viewHeightHalf,mPaint);
+//        }
 
-        int i=1;
-        if (mBitmaps[i] != null) {
-            // サイズ補正（AccBall参照）
-            bitmapWork[i] = Bitmap.createScaledBitmap(mBitmaps[i],viewWidthHalf,viewHeightHalf,false);
-            // View上に描画
-            canvas.drawBitmap(bitmapWork[i],viewWidthHalf,0,paint);
-        }
+        //Log.d("onDraw","viewWidthHalf="+viewWidthHalf+",viewHeightHalf="+viewHeightHalf);
 
-        i=3;
-        if (mBitmaps[i] != null) {
-            // サイズ補正（AccBall参照）
-            bitmapWork[i] = Bitmap.createScaledBitmap(mBitmaps[i],viewWidthHalf,viewHeightHalf,false);
-            // View上に描画
-            canvas.drawBitmap(bitmapWork[i],0,viewHeightHalf,paint);
+        // ビュー内の4箇所に、配置すべき画像情報を加工して配置する
+        for (int j = 0; j < 2 ; j++) {
+            for (int i = 0; i < 2; i++) {
+                int BitmapId = i*2+j;
+                if (mBitmaps[BitmapId] != null) {
+                    // サイズ補正（AccBall参照）
+                    bitmapWork[BitmapId] = Bitmap.createScaledBitmap(mBitmaps[BitmapId],
+                            viewWidthHalf,viewHeightHalf,false);
+                    // View上に描画
+                    canvas.drawBitmap(bitmapWork[BitmapId],
+                            viewWidthHalf * i,viewHeightHalf * j, mPaint);
+                }
+
+            }
+
         }
 
     }
@@ -106,7 +130,9 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
         for (int i = 0; i < BITMAP_COUNT; i++) {
             if (this.mResources[i] != UNDEFINED_RESOURCE) {
                 // 画像読込（AccBall参照）
-                this.mBitmaps[i] = BitmapFactory.decodeResource(getResources(),mResources[i]);
+                this.mBitmaps[i] = BitmapFactory.decodeResource(getResources(), mResources[i]);
+            } else {
+                this.mBitmaps[i] = null;
             }
         }
     }
