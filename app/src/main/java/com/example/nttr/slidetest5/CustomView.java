@@ -27,7 +27,8 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
 
     private Bitmap[] mBitmaps = new Bitmap[BITMAP_COUNT];
 
-    private int mResID = -1;
+    private final int SELECT_NONE = -1;
+    private int mResID = SELECT_NONE;
 
     // デフォルトコンストラクタ
     // http://www.atmarkit.co.jp/ait/articles/0912/17/news110_2.html

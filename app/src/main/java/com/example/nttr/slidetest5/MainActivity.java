@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
     private int mPieceY = 4; // 原則同数にする。異なる場合、各マスが長方形になる
 
     // レイアウト関連
-    private final int PIECE_MARGIN = 15;    // 各マスのマージン。15: mPieceX=4で調整
+    private final int PIECE_MARGIN = 8;    // 各マスのマージン。15: mPieceX=4で調整
 
     // スライドエリアの各パネルをLinearLayoutで管理し、配列化
     //ArrayList<ImageView> mImagePieces = new ArrayList<ImageView>();
@@ -50,6 +50,11 @@ public class MainActivity extends AppCompatActivity {
     final int DIRECTION_RIGHT  = 3;
     final int DIRECTION_BOTTOM = 4;
 
+    final int DIRECTION_TOP_LEFT     = 5;
+    final int DIRECTION_TOP_RIGHT    = 6;
+    final int DIRECTION_BOTTOM_LEFT  = 7;
+    final int DIRECTION_BOTTOM_RIGHT = 8;
+
     // SurfaceView関連(Activityに配置済み想定)
     TranslationSurfaceView mSurfaceView;
     SurfaceHolder mHolder;
@@ -64,6 +69,26 @@ public class MainActivity extends AppCompatActivity {
     //CustomView[] cv = new CustomView[4];
     //final int UNDEFINED_RESOURCE = 0;        // CustomViewと共通
     private int mBackgroundColor = Color.CYAN;
+
+    // 4分割の添え字
+    private final int POSITION_UL = 0; // 左上
+    private final int POSITION_UR = 1; // 右上
+    private final int POSITION_LL = 2; // 左下
+    private final int POSITION_LR = 3; // 右下
+    // コード値の組と初期配置先
+    int aryImgRes[][] = {
+            {SELECT_NONE, SELECT_NONE,
+                    SELECT_NONE,3,4},
+            {SELECT_NONE, 1,
+                    SELECT_NONE, SELECT_NONE,7},
+            {SELECT_NONE, SELECT_NONE,
+                    2,SELECT_NONE,8},
+            {0, SELECT_NONE,
+                    SELECT_NONE,SELECT_NONE,9},
+    };
+
+    // コード値をリソースIDへ変換する定数配列っぽいクラス
+    private CodeToResource c2r = new CodeToResource();
     ArrayList<Bitmap> mBitmapList = new ArrayList<>();
     int mBitmapID = SELECT_NONE;
     boolean flagSetBitmap = false;  // 処理を1回だけ実行するためのフラグ
@@ -183,12 +208,26 @@ public class MainActivity extends AppCompatActivity {
 
         // 表示設定
         // ビットマップ情報の定義（固定値版）
-        int aryImgRes[][] = {
-                {R.drawable.arrow_left,CustomView.UNDEFINED_RESOURCE,
-                        CustomView.UNDEFINED_RESOURCE,R.drawable.arrow_right,0},
-                {CustomView.UNDEFINED_RESOURCE,R.drawable.arrow_left,
-                        R.drawable.arrow_right,CustomView.UNDEFINED_RESOURCE,10}
-        };
+//        int aryImgRes[][] = {
+//                {R.drawable.arrow_left,CustomView.UNDEFINED_RESOURCE,
+//                        CustomView.UNDEFINED_RESOURCE,R.drawable.arrow_right,0},
+//                {CustomView.UNDEFINED_RESOURCE,R.drawable.arrow_left,
+//                        R.drawable.arrow_right,CustomView.UNDEFINED_RESOURCE,10}
+//        };
+
+        // ピンク星
+//        int aryImgRes[][] = {
+//                {CustomView.UNDEFINED_RESOURCE, CustomView.UNDEFINED_RESOURCE,
+//                        CustomView.UNDEFINED_RESOURCE,R.drawable.pink_star_ul,4},
+//                {CustomView.UNDEFINED_RESOURCE, R.drawable.pink_star_ur,
+//                        CustomView.UNDEFINED_RESOURCE, CustomView.UNDEFINED_RESOURCE,7},
+//                {CustomView.UNDEFINED_RESOURCE, CustomView.UNDEFINED_RESOURCE,
+//                        R.drawable.pink_star_ll,CustomView.UNDEFINED_RESOURCE,8},
+//                {R.drawable.pink_star_lr, CustomView.UNDEFINED_RESOURCE,
+//                        CustomView.UNDEFINED_RESOURCE,CustomView.UNDEFINED_RESOURCE,9},
+//        };
+//        aryImgRes[][]
+
 
         // 表示するビットマップ群の定義
         // ビュー内の4箇所に、配置すべき画像情報を加工して配置したビットマップを生成
@@ -217,12 +256,15 @@ public class MainActivity extends AppCompatActivity {
 
             Bitmap bitmapWork1;
             Bitmap bitmapWork2;
+            int resId;
             for (int j = 0; j < 2; j++) {
                 for (int i = 0; i < 2; i++) {
                     int BitmapId = i * 2 + j;
-                    if (aryImgRes[k][BitmapId] != CustomView.UNDEFINED_RESOURCE) {
+                    if (aryImgRes[k][BitmapId] != SELECT_NONE) {
+                        // コードをリソースIDへ変換
+                        resId = c2r.getResID(aryImgRes[k][BitmapId]);
                         // Bitmapをリソースから読み込む
-                        bitmapWork1 = BitmapFactory.decodeResource(resources, aryImgRes[k][BitmapId]);
+                        bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
                         // サイズ補正（AccBall参照）
                         bitmapWork2 = Bitmap.createScaledBitmap(bitmapWork1,
                                 viewWidthHalf, viewHeightHalf, false);
@@ -237,17 +279,18 @@ public class MainActivity extends AppCompatActivity {
             CustomView destImageView = mImagePieces.get(aryImgRes[k][4]);
             destImageView.setImageBitmap(bitmapBase);
             destImageView.setResID(k);
+            destImageView.setVisibility(View.VISIBLE);
             mBitmapList.add(bitmapBase);
         }
 
-        // 表示デモ用に左上(0)だけ表示
-        mImagePieces.get(0).setVisibility(View.VISIBLE);
-//                // 画像を掲載
-//                // https://www.javadrive.jp/start/array/index5.html
-//                mImagePieces.get(0).setRes(imgRes);
-
-        // 通り抜け防止テストで、10も追加
-        mImagePieces.get(10).setVisibility(View.VISIBLE);
+//        // 表示デモ用に左上(0)だけ表示
+//        mImagePieces.get(0).setVisibility(View.VISIBLE);
+////                // 画像を掲載
+////                // https://www.javadrive.jp/start/array/index5.html
+////                mImagePieces.get(0).setRes(imgRes);
+//
+//        // 通り抜け防止テストで、10も追加
+//        mImagePieces.get(10).setVisibility(View.VISIBLE);
 
         // 再実行しない
         flagSetBitmap = true;
@@ -533,6 +576,57 @@ public class MainActivity extends AppCompatActivity {
                             destImageView.setVisibility(View.VISIBLE);
                     //    }
                     //});
+
+                    // 模様の成立チェック
+                    // 左上を基準に、その左・上・左上をチェック
+                    if (mAnimeDirection == DIRECTION_TOP || mAnimeDirection == DIRECTION_LEFT) {
+                        //TODO
+                    }
+
+                    // 右上を基準に、その右・上・右上をチェック
+                    //TODO
+
+
+                    // 左下を基準に、その左・下・左下をチェック
+                    if (mAnimeDirection == DIRECTION_BOTTOM || mAnimeDirection == DIRECTION_LEFT) {
+
+                        // 基準位置のコードを取得
+                        int resID = destImageView.getResID();
+                        int code = aryImgRes[resID][POSITION_LL];
+                        int codeGroup = code / 4; // 当面は4つマッチとする
+
+                        // SELECT_NONEでなければ、周辺のコードを取得
+                        if (code != SELECT_NONE) {
+
+                            int targetCode;
+                            // 左の、右下
+                            targetCode = getArroundCode(mAnimeDestIndex,DIRECTION_LEFT,POSITION_LR);
+                            // マッチしないまたはSELECT_NONEあれば判定終了
+                            if ( targetCode != SELECT_NONE && (targetCode / 4) != codeGroup) {
+                                return;
+                            }
+
+                            // 下の、右上
+                            targetCode = getArroundCode(mAnimeDestIndex,DIRECTION_BOTTOM,POSITION_UR);
+                            // マッチしないまたはSELECT_NONEあれば判定終了
+                            if ( targetCode != SELECT_NONE && (targetCode / 4) != codeGroup) {
+                                return;
+                            }
+
+                            // 左下の、左上
+                            targetCode = getArroundCode(mAnimeDestIndex,DIRECTION_BOTTOM_LEFT,POSITION_UL);
+                            // マッチしないまたはSELECT_NONEあれば判定終了
+                            if ( targetCode != SELECT_NONE && (targetCode / 4) != codeGroup) {
+                                return;
+                            }
+                        }
+                        Log.d("check","4 pieces matched at "+mAnimeDestIndex+" !");
+
+                    }
+
+                    // 右下を基準に、その右・下・右下をチェック
+                    //TODO
+
                     super.onAnimationEnd(animation);
                 }
             });
@@ -573,6 +667,23 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     };
+
+    private int getArroundCode(int srcViewIndex,int direction,int position) {
+        int targetViewIndex;
+        int targetResID;
+        int targetCode;
+        // 左、の右下のコードを取得
+        targetViewIndex = getDestViewIndex(srcViewIndex,direction);
+        if (targetViewIndex == SELECT_NONE) {
+            return SELECT_NONE;
+        }
+        targetResID = mImagePieces.get(targetViewIndex).getResID();
+        if (targetResID == SELECT_NONE) {
+            return SELECT_NONE;
+        }
+        targetCode = aryImgRes[targetResID][position];
+        return targetCode;
+    }
 
     @Override
     protected void onResume() {
@@ -688,6 +799,68 @@ public class MainActivity extends AppCompatActivity {
                 // 要素数以上なので、mImagePieces.size() でも可
                 if (destIndex >= mPieceX * mPieceY ) {
                     destIndex = SELECT_NONE;
+                }
+                break;
+
+            case DIRECTION_TOP_LEFT:
+                // 上方向へ移動
+                destIndex = srcIndex - mPieceX;
+                if (destIndex < 0) {
+                    destIndex = SELECT_NONE;
+                } else {
+                    // さらに、左方向へ移動
+                    if (destIndex % mPieceX == 0) {
+                        destIndex = SELECT_NONE;
+                    } else {
+                        destIndex = destIndex - 1;
+                    }
+                }
+                break;
+
+            case DIRECTION_TOP_RIGHT:
+                // 上方向へ移動
+                destIndex = srcIndex - mPieceX;
+                if (destIndex < 0) {
+                    destIndex = SELECT_NONE;
+                } else {
+                    // さらに、右方向へ移動
+                    if ((destIndex + 1) % mPieceX == 0) {
+                        destIndex = SELECT_NONE;
+                    } else {
+                        destIndex = destIndex + 1;
+                    }
+                }
+                break;
+
+            case DIRECTION_BOTTOM_LEFT:
+                // 下方向へ移動
+                destIndex = srcIndex + mPieceX;
+                // 要素数以上なので、mImagePieces.size() でも可
+                if (destIndex >= mPieceX * mPieceY ) {
+                    destIndex = SELECT_NONE;
+                } else {
+                    // さらに、左方向へ移動
+                    if (destIndex % mPieceX == 0) {
+                        destIndex = SELECT_NONE;
+                    } else {
+                        destIndex = destIndex - 1;
+                    }
+                }
+                break;
+
+            case DIRECTION_BOTTOM_RIGHT:
+                // 下方向へ移動
+                destIndex = srcIndex + mPieceX;
+                // 要素数以上なので、mImagePieces.size() でも可
+                if (destIndex >= mPieceX * mPieceY ) {
+                    destIndex = SELECT_NONE;
+                } else {
+                    // さらに、右方向へ移動
+                    if ((destIndex + 1) % mPieceX == 0) {
+                        destIndex = SELECT_NONE;
+                    } else {
+                        destIndex = destIndex + 1;
+                    }
                 }
                 break;
 
