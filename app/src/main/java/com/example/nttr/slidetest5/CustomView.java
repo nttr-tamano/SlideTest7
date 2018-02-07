@@ -2,11 +2,7 @@ package com.example.nttr.slidetest5;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.PorterDuff;
 
 import java.util.Arrays;
 
@@ -30,6 +26,8 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
     // https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q111032016
 
     private Bitmap[] mBitmaps = new Bitmap[BITMAP_COUNT];
+
+    private int mResID = -1;
 
     // デフォルトコンストラクタ
     // http://www.atmarkit.co.jp/ait/articles/0912/17/news110_2.html
@@ -59,62 +57,62 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
 //        }
     }
 
-    @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-
-        // キャンバス（背景）を透過
-        // https://qiita.com/androhi/items/a1ed36d3743d5b8cb771
-        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-        Bitmap[] bitmapWork = new Bitmap[BITMAP_COUNT];
-
-        int viewWidth = this.getWidth();
-        int viewHeight = this.getHeight();
-
-        int viewWidthHalf = viewWidth / 2;
-        int viewHeightHalf = viewHeight / 2;
-
-        Paint mPaint = new Paint();
-        canvas.drawColor(mBackgroundColor);
-
-        // ビュー内の4箇所（以上）に、配置すべき画像情報を決定して配置する（予定）
-//        int i=1;
-//        if (mBitmaps[i] != null) {
-//            // サイズ補正（AccBall参照）
-//            bitmapWork[i] = Bitmap.createScaledBitmap(mBitmaps[i],viewWidthHalf,viewHeightHalf,false);
-//            // View上に描画
-//            canvas.drawBitmap(bitmapWork[i],viewWidthHalf,0,mPaint);
+//    @Override
+//    protected void onDraw(Canvas canvas) {
+//        super.onDraw(canvas);
+//
+//        // キャンバス（背景）を透過
+//        // https://qiita.com/androhi/items/a1ed36d3743d5b8cb771
+//        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+//        Bitmap[] bitmapWork = new Bitmap[BITMAP_COUNT];
+//
+//        int viewWidth = this.getWidth();
+//        int viewHeight = this.getHeight();
+//
+//        int viewWidthHalf = viewWidth / 2;
+//        int viewHeightHalf = viewHeight / 2;
+//
+//        Paint mPaint = new Paint();
+//        canvas.drawColor(mBackgroundColor);
+//
+//        // ビュー内の4箇所（以上）に、配置すべき画像情報を決定して配置する（予定）
+////        int i=1;
+////        if (mBitmaps[i] != null) {
+////            // サイズ補正（AccBall参照）
+////            bitmapWork[i] = Bitmap.createScaledBitmap(mBitmaps[i],viewWidthHalf,viewHeightHalf,false);
+////            // View上に描画
+////            canvas.drawBitmap(bitmapWork[i],viewWidthHalf,0,mPaint);
+////        }
+////
+////        i=3;
+////        if (mBitmaps[i] != null) {
+////            // サイズ補正（AccBall参照）
+////            bitmapWork[i] = Bitmap.createScaledBitmap(mBitmaps[i],
+////                    viewWidthHalf,viewHeightHalf,false);
+////            // View上に描画
+////            canvas.drawBitmap(bitmapWork[i],0,viewHeightHalf,mPaint);
+////        }
+//
+//        //Log.d("onDraw","viewWidthHalf="+viewWidthHalf+",viewHeightHalf="+viewHeightHalf);
+//
+//        // ビュー内の4箇所に、配置すべき画像情報を加工して配置する
+//        for (int j = 0; j < 2 ; j++) {
+//            for (int i = 0; i < 2; i++) {
+//                int BitmapId = i*2+j;
+//                if (mBitmaps[BitmapId] != null) {
+//                    // サイズ補正（AccBall参照）
+//                    bitmapWork[BitmapId] = Bitmap.createScaledBitmap(mBitmaps[BitmapId],
+//                            viewWidthHalf,viewHeightHalf,false);
+//                    // View上に描画
+//                    canvas.drawBitmap(bitmapWork[BitmapId],
+//                            viewWidthHalf * i,viewHeightHalf * j, mPaint);
+//                }
+//
+//            }
+//
 //        }
 //
-//        i=3;
-//        if (mBitmaps[i] != null) {
-//            // サイズ補正（AccBall参照）
-//            bitmapWork[i] = Bitmap.createScaledBitmap(mBitmaps[i],
-//                    viewWidthHalf,viewHeightHalf,false);
-//            // View上に描画
-//            canvas.drawBitmap(bitmapWork[i],0,viewHeightHalf,mPaint);
-//        }
-
-        //Log.d("onDraw","viewWidthHalf="+viewWidthHalf+",viewHeightHalf="+viewHeightHalf);
-
-        // ビュー内の4箇所に、配置すべき画像情報を加工して配置する
-        for (int j = 0; j < 2 ; j++) {
-            for (int i = 0; i < 2; i++) {
-                int BitmapId = i*2+j;
-                if (mBitmaps[BitmapId] != null) {
-                    // サイズ補正（AccBall参照）
-                    bitmapWork[BitmapId] = Bitmap.createScaledBitmap(mBitmaps[BitmapId],
-                            viewWidthHalf,viewHeightHalf,false);
-                    // View上に描画
-                    canvas.drawBitmap(bitmapWork[BitmapId],
-                            viewWidthHalf * i,viewHeightHalf * j, mPaint);
-                }
-
-            }
-
-        }
-
-    }
+//    }
 
     // 画像のリソース情報の取得
     public int[] getRes() {
@@ -123,18 +121,52 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
 
     // 画像のリソース情報の設定＋ビットマップ準備
     public void setRes(int[] mResources) {
-        // 配列のコピー
-        // https://developer.android.com/reference/java/util/Arrays.html#copyOf(int[], int)
-        this.mResources = Arrays.copyOf(mResources,BITMAP_COUNT);
+//        // 配列のコピー
+//        // https://developer.android.com/reference/java/util/Arrays.html#copyOf(int[], int)
+//        this.mResources = Arrays.copyOf(mResources,BITMAP_COUNT);
+//
+//        for (int i = 0; i < BITMAP_COUNT; i++) {
+//            if (this.mResources[i] != UNDEFINED_RESOURCE) {
+//                // 画像読込（AccBall参照）
+//                this.mBitmaps[i] = BitmapFactory.decodeResource(getResources(), mResources[i]);
+//            } else {
+//                this.mBitmaps[i] = null;
+//            }
+//        }
+//
+//        // ビュー内の4箇所に、配置すべき画像情報を加工して配置したビットマップを生成
+//        int viewWidth = this.getWidth();
+//        int viewHeight = this.getHeight();
+//        int viewWidthHalf = viewWidth / 2;
+//        int viewHeightHalf = viewHeight / 2;
+//        // http://cheesememo.blog39.fc2.com/blog-entry-740.html
+//        // https://developer.android.com/reference/android/graphics/Bitmap.Config.html
+//        Bitmap bitmapWork = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
+//        Canvas canvas = new Canvas(bitmapWork);;
+//
+//        for (int j = 0; j < 2 ; j++) {
+//            for (int i = 0; i < 2; i++) {
+//                int BitmapId = i*2+j;
+//                if (mBitmaps[BitmapId] != null) {
+//                    // サイズ補正（AccBall参照）
+//                    bitmapWork = Bitmap.createScaledBitmap(mBitmaps[BitmapId],
+//                            viewWidthHalf,viewHeightHalf,false);
+//                    // View上に描画
+//                    canvas.drawBitmap(bitmapWork[BitmapId],
+//                            viewWidthHalf * i,viewHeightHalf * j, (Paint)null);
+//                }
+//
+//            }
+//
+//        }
 
-        for (int i = 0; i < BITMAP_COUNT; i++) {
-            if (this.mResources[i] != UNDEFINED_RESOURCE) {
-                // 画像読込（AccBall参照）
-                this.mBitmaps[i] = BitmapFactory.decodeResource(getResources(), mResources[i]);
-            } else {
-                this.mBitmaps[i] = null;
-            }
-        }
     }
 
+    public int getResID() {
+        return mResID;
+    }
+
+    public void setResID(int mResID) {
+        this.mResID = mResID;
+    }
 }

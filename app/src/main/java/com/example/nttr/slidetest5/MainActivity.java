@@ -3,7 +3,12 @@ package com.example.nttr.slidetest5;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -56,8 +61,12 @@ public class MainActivity extends AppCompatActivity {
 
     // 画像の表示用
     Bitmap mBitmap;
-    CustomView[] cv = new CustomView[4];
-    final int UNDEFINED_RESOURCE = 0;        // CustomViewと共通
+    //CustomView[] cv = new CustomView[4];
+    //final int UNDEFINED_RESOURCE = 0;        // CustomViewと共通
+    private int mBackgroundColor = Color.CYAN;
+    ArrayList<Bitmap> mBitmapList = new ArrayList<>();
+    int mBitmapID = SELECT_NONE;
+    boolean flagSetBitmap = false;  // 処理を1回だけ実行するためのフラグ
 
     int mAnimeDirection = DIRECTION_NONE;    // アニメーション方向
     int mAnimeSrcIndex = SELECT_NONE;        // アニメーションの移動元のID
@@ -159,24 +168,91 @@ public class MainActivity extends AppCompatActivity {
 
                 } //for i
 
-                // 表示設定
-
-                // 表示デモ用に左上(0)だけ表示
-                mImagePieces.get(0).setVisibility(View.VISIBLE);
-                // 画像を掲載
-                // https://www.javadrive.jp/start/array/index5.html
-                int imgRes[] = {CustomView.UNDEFINED_RESOURCE,R.drawable.arrow_left,
-                        R.drawable.arrow_right,CustomView.UNDEFINED_RESOURCE};
-                mImagePieces.get(0).setRes(imgRes);
-
-                // 通り抜け防止テストで、10も追加
-                mImagePieces.get(10).setVisibility(View.VISIBLE);
-
-
             }
 
         })).start();
     }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+
+        if (flagSetBitmap) {
+            return;
+        }
+
+        // 表示設定
+        // ビットマップ情報の定義（固定値版）
+        int aryImgRes[][] = {
+                {R.drawable.arrow_left,CustomView.UNDEFINED_RESOURCE,
+                        CustomView.UNDEFINED_RESOURCE,R.drawable.arrow_right,0},
+                {CustomView.UNDEFINED_RESOURCE,R.drawable.arrow_left,
+                        R.drawable.arrow_right,CustomView.UNDEFINED_RESOURCE,10}
+        };
+
+        // 表示するビットマップ群の定義
+        // ビュー内の4箇所に、配置すべき画像情報を加工して配置したビットマップを生成
+        // CustomViewは全部同じサイズのはずなので、サンプルとして左上1個を持ってくる
+        CustomView sampleView = mImagePieces.get(0);
+        // OnCreateではゼロになる
+        // https://qiita.com/m1takahashi/items/6fa49b9e44f4ab5c4055
+        // http://shim0mura.hatenadiary.jp/entry/2016/01/11/013000
+        // http://y-anz-m.blogspot.jp/2010/01/android-view.html
+        int viewWidth = sampleView.getWidth();
+        int viewHeight = sampleView.getHeight();
+        int viewWidthHalf = viewWidth / 2;
+        int viewHeightHalf = viewHeight / 2;
+        // http://cheesememo.blog39.fc2.com/blog-entry-740.html
+        // https://developer.android.com/reference/android/graphics/Bitmap.Config.html
+
+        Resources resources = getResources();
+
+        // https://www.javadrive.jp/start/array/index9.html
+        // imgRes.length は、2次元配列の第1要素の長さ
+        // imgRes[0].length は、2次元配列の1個目の要素の第2要素の長さ
+        for (int k = 0; k < aryImgRes.length; k++) {
+            Bitmap bitmapBase = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmapBase);
+            canvas.drawColor(mBackgroundColor); // 背景色を指定
+
+            Bitmap bitmapWork1;
+            Bitmap bitmapWork2;
+            for (int j = 0; j < 2; j++) {
+                for (int i = 0; i < 2; i++) {
+                    int BitmapId = i * 2 + j;
+                    if (aryImgRes[k][BitmapId] != CustomView.UNDEFINED_RESOURCE) {
+                        // Bitmapをリソースから読み込む
+                        bitmapWork1 = BitmapFactory.decodeResource(resources, aryImgRes[k][BitmapId]);
+                        // サイズ補正（AccBall参照）
+                        bitmapWork2 = Bitmap.createScaledBitmap(bitmapWork1,
+                                viewWidthHalf, viewHeightHalf, false);
+                        // View上に描画
+                        canvas.drawBitmap(bitmapWork2,
+                                viewWidthHalf * i, viewHeightHalf * j, (Paint)null);
+                    }
+                }
+            }
+
+            // 該当CustomViewへ画像を設置
+            CustomView destImageView = mImagePieces.get(aryImgRes[k][4]);
+            destImageView.setImageBitmap(bitmapBase);
+            destImageView.setResID(k);
+            mBitmapList.add(bitmapBase);
+        }
+
+        // 表示デモ用に左上(0)だけ表示
+        mImagePieces.get(0).setVisibility(View.VISIBLE);
+//                // 画像を掲載
+//                // https://www.javadrive.jp/start/array/index5.html
+//                mImagePieces.get(0).setRes(imgRes);
+
+        // 通り抜け防止テストで、10も追加
+        mImagePieces.get(10).setVisibility(View.VISIBLE);
+
+        // 再実行しない
+        flagSetBitmap = true;
+    }
+
 
     // タッチイベントにジェスチャー受付を定義
     @Override
@@ -294,7 +370,8 @@ public class MainActivity extends AppCompatActivity {
                 mAnimeDestIndex = destViewIndex;
 
                 // 移動先に画像情報をセット
-                mImagePieces.get(mAnimeDestIndex).setRes(mImagePieces.get(mAnimeSrcIndex).getRes());
+                //mImagePieces.get(mAnimeDestIndex).setRes(mImagePieces.get(mAnimeSrcIndex).getRes());
+
 
                 // スレッドの内容の実行許可
                 isAttached = true;
@@ -308,11 +385,19 @@ public class MainActivity extends AppCompatActivity {
 
                 // 移動元の画像の取得
                 CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
-                srcImageView.destroyDrawingCache(); // キャッシュのクリア
-                Bitmap bitmap_work = srcImageView.getDrawingCache();  // 作り直されたキャッシュを取得する
-                // ImageViewのサイズに合わせる
-                mBitmap = Bitmap.createScaledBitmap(bitmap_work, srcImageView.getMeasuredWidth(),
-                        srcImageView.getMeasuredHeight(), false);
+//                srcImageView.destroyDrawingCache(); // キャッシュのクリア
+//                Bitmap bitmap_work = srcImageView.getDrawingCache();  // 作り直されたキャッシュを取得する
+
+                mBitmapID = srcImageView.getResID();
+                if (mBitmapID == SELECT_NONE) {
+                    return false;
+                }
+                mBitmap = mBitmapList.get(mBitmapID);
+
+//                // ImageViewのサイズに合わせる
+//                mBitmap = Bitmap.createScaledBitmap(bitmap_work, srcImageView.getMeasuredWidth(),
+//                        srcImageView.getMeasuredHeight(), false);
+
 
                 // 描画開始位置
                 int srcX = srcImageView.getLeft();
@@ -423,11 +508,15 @@ public class MainActivity extends AppCompatActivity {
                     // 移動元ImageViewの画像を非表示にする
                     final CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
                     srcImageView.setVisibility(View.INVISIBLE);
+                    srcImageView.setResID(SELECT_NONE);
 
                     // 移動先ImageViewに画像を書き込む
                     final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
                     //destImageView.setImageBitmap(mBitmap);
-                    destImageView.setRes(srcImageView.getRes());
+//                    destImageView.setRes(srcImageView.getRes());
+                    destImageView.setImageBitmap(mBitmap);
+                    destImageView.setResID(mBitmapID);
+
                     // 配列のデバッグ出力
                     // http://akisute3.hatenablog.com/entry/20120204/1328346655
                     //Log.d("onAnimeStart","src="+mAnimeSrcIndex+",Res="+Arrays.toString(srcImageView.getRes()));
