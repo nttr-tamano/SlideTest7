@@ -79,10 +79,10 @@ public class MainActivity extends AppCompatActivity {
     int aryImgRes[][] = {
             {SELECT_NONE, SELECT_NONE,
                     SELECT_NONE,3,4},
-            {SELECT_NONE, 1,
-                    SELECT_NONE, SELECT_NONE,7},
             {SELECT_NONE, SELECT_NONE,
-                    2,SELECT_NONE,8},
+                    2, SELECT_NONE,7},
+            {SELECT_NONE, 1,
+                    SELECT_NONE,SELECT_NONE,8},
             {0, SELECT_NONE,
                     SELECT_NONE,SELECT_NONE,9},
     };
@@ -259,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
             int resId;
             for (int j = 0; j < 2; j++) {
                 for (int i = 0; i < 2; i++) {
-                    int BitmapId = i * 2 + j;
+                    int BitmapId = i + j * 2;
                     if (aryImgRes[k][BitmapId] != SELECT_NONE) {
                         // コードをリソースIDへ変換
                         resId = c2r.getResID(aryImgRes[k][BitmapId]);
@@ -397,7 +397,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             // 移動先のIDの取得を試みる
-            int destViewIndex = getDestViewIndex(flingedViewIndex, direction);
+            int destViewIndex = getDestViewIndex(flingedViewIndex, direction, true);
 
             // 移動不可の場合、SELECT_NONEが返るのでアニメーションしない
             if (destViewIndex == SELECT_NONE) {
@@ -570,6 +570,12 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
+
+                    // １回実行済みであれば再実行不要
+                    // 移動先CustomViewが見えていれば、1回実行済みと見なす
+                    if (destImageView.getVisibility() == View.VISIBLE) {
+                        return;
+                    }
                     //destImageView.post(new Runnable() {
                     //    @Override
                     //    public void run() {
@@ -578,51 +584,105 @@ public class MainActivity extends AppCompatActivity {
                     //});
 
                     // 模様の成立チェック
-                    // 左上を基準に、その左・上・左上をチェック
-                    if (mAnimeDirection == DIRECTION_TOP || mAnimeDirection == DIRECTION_LEFT) {
-                        //TODO
+                    int resID = destImageView.getResID();
+                    // 最低2箇所チェックする必要がある
+                    boolean flag1 = false;
+                    boolean flag2 = false;
+
+                    // フリック方向に基づき、チェック対象を決定
+                    switch (mAnimeDirection) {
+                        case DIRECTION_TOP:
+                            // 左上、右上
+                            flag1 = checkMatch(resID,POSITION_UL);
+                            flag2 = checkMatch(resID,POSITION_UR);
+                            break;
+                        case DIRECTION_LEFT:
+                            // 左上、左下
+                            flag1 = checkMatch(resID,POSITION_UL);
+                            flag2 = checkMatch(resID,POSITION_LL);
+
+                            // vanish test
+                            if (flag2 == true) {
+                                vanishImage(mAnimeDestIndex,DIRECTION_BOTTOM,POSITION_UL,SELECT_NONE);
+                            }
+
+                            break;
+                        case DIRECTION_RIGHT:
+                            // 右上、右下
+                            flag1 = checkMatch(resID,POSITION_UR);
+                            flag2 = checkMatch(resID,POSITION_LR);
+                            break;
+                        case DIRECTION_BOTTOM:
+                            // 左下、右下
+                            flag1 = checkMatch(resID,POSITION_LL);
+                            flag2 = checkMatch(resID,POSITION_LR);
+                            break;
                     }
+                    Log.d("check","mAnimeDirection="+mAnimeDirection
+                            +",flag1="+flag1+",flag2="+flag2);
 
-                    // 右上を基準に、その右・上・右上をチェック
-                    //TODO
 
+//                    if (mAnimeDirection == DIRECTION_TOP || mAnimeDirection == DIRECTION_LEFT) {
+//                        //TODO
+//                    }
+//
+//                    // 右上を基準に、その右・上・右上をチェック
+//                    //TODO
+//
+//                    Log.d("check","mAnimeDirection="+mAnimeDirection);
+//
+//                    // 左下を基準に、その左・下・左下をチェック
+//                    if (mAnimeDirection == DIRECTION_BOTTOM || mAnimeDirection == DIRECTION_LEFT) {
+//                    }
 
-                    // 左下を基準に、その左・下・左下をチェック
-                    if (mAnimeDirection == DIRECTION_BOTTOM || mAnimeDirection == DIRECTION_LEFT) {
-
-                        // 基準位置のコードを取得
-                        int resID = destImageView.getResID();
-                        int code = aryImgRes[resID][POSITION_LL];
-                        int codeGroup = code / 4; // 当面は4つマッチとする
-
-                        // SELECT_NONEでなければ、周辺のコードを取得
-                        if (code != SELECT_NONE) {
-
-                            int targetCode;
-                            // 左の、右下
-                            targetCode = getArroundCode(mAnimeDestIndex,DIRECTION_LEFT,POSITION_LR);
-                            // マッチしないまたはSELECT_NONEあれば判定終了
-                            if ( targetCode != SELECT_NONE && (targetCode / 4) != codeGroup) {
-                                return;
-                            }
-
-                            // 下の、右上
-                            targetCode = getArroundCode(mAnimeDestIndex,DIRECTION_BOTTOM,POSITION_UR);
-                            // マッチしないまたはSELECT_NONEあれば判定終了
-                            if ( targetCode != SELECT_NONE && (targetCode / 4) != codeGroup) {
-                                return;
-                            }
-
-                            // 左下の、左上
-                            targetCode = getArroundCode(mAnimeDestIndex,DIRECTION_BOTTOM_LEFT,POSITION_UL);
-                            // マッチしないまたはSELECT_NONEあれば判定終了
-                            if ( targetCode != SELECT_NONE && (targetCode / 4) != codeGroup) {
-                                return;
-                            }
-                        }
-                        Log.d("check","4 pieces matched at "+mAnimeDestIndex+" !");
-
-                    }
+//                    while (mAnimeDirection == DIRECTION_BOTTOM || mAnimeDirection == DIRECTION_LEFT) {
+//
+//                        // 正否判定用
+//                        boolean flagMatch = true; // マッチしている(可能性がある)=true、ない=false
+//
+//                        // 基準位置のコードを取得
+//                        int resID = destImageView.getResID();
+//                        int code = aryImgRes[resID][POSITION_LL];
+//                        int codeGroup = code / 4; // 当面は4つマッチとする
+//
+//                        Log.d("check","resID="+resID+",code="+code);
+//
+//                        // SELECT_NONEでなければ、周辺のコードを取得
+//                        if (code != SELECT_NONE) {
+//
+//                            // チェック対象となる位置の情報
+//                            // 左の、右下
+//                            // 下の、左上
+//                            // 左下の、右上
+//                            int directions[] = {DIRECTION_LEFT, DIRECTION_BOTTOM, DIRECTION_BOTTOM_LEFT};
+//                            int positions[] = {POSITION_LR,POSITION_UL,POSITION_UR};
+//
+//                            for (int i = 0; i < directions.length; i++) {
+//                                int targetCode = getAroundCode(mAnimeDestIndex, directions[i], positions[i]);
+//                                Log.d("check","targetCode="+targetCode);
+//                                // マッチしないまたはSELECT_NONEあれば判定終了
+//                                if ( targetCode == SELECT_NONE || (targetCode / 4) != codeGroup) {
+//                                    flagMatch = false;
+//                                    break;
+//                                }
+//                            }
+//
+//                        } else {
+//                            flagMatch = false;
+//                        }
+//                        // マッチしていないことが確定していたらループを中断
+//                        if (flagMatch == false) {
+//                            break;
+//                        }
+//
+//                        Log.d("check","4 pieces matched at "+mAnimeDestIndex+" !");
+//
+//                        // 画像を消す処理
+//
+//
+//                        // ループは1回で終了
+//                        break;
+//                    }
 
                     // 右下を基準に、その右・下・右下をチェック
                     //TODO
@@ -668,20 +728,191 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private int getArroundCode(int srcViewIndex,int direction,int position) {
+    // 模様の成立をチェックする
+    private boolean checkMatch(int resID, int position) {
+
+        int code = aryImgRes[resID][position];
+        // 配列の宣言と初期化を別々に行う
+        // http://blog.goo.ne.jp/xypenguin/e/e1cfcc0b1a8c3acdbe023bbef8944dac
+        int[] directions; // = new int[3];
+        int[] positions; //  = new int[3];
+
+        // direction方向毎にチェック対象が異なる
+        switch(position) {
+            case POSITION_UL:
+                // 基準マスの、左上 に対し、
+                // チェック対象となる位置の情報
+                // 上の、左下
+                // 左の、右上
+                // 左上の、右下
+                directions = new int[]{DIRECTION_TOP, DIRECTION_LEFT, DIRECTION_TOP_LEFT};
+                positions =  new int[]{POSITION_LL, POSITION_UR, POSITION_LR};
+                break;
+            case POSITION_UR:
+                // 基準マスの、右上 に対し、
+                // チェック対象となる位置の情報
+                // 上の、右下
+                // 右の、左上
+                // 右上の、左下
+                directions = new int[]{DIRECTION_TOP, DIRECTION_RIGHT, DIRECTION_TOP_RIGHT};
+                positions =  new int[]{POSITION_LR, POSITION_UL, POSITION_LL};
+                break;
+            case POSITION_LL:
+                // 基準マスの、左下 に対し、
+                // チェック対象となる位置の情報
+                // 下の、左上
+                // 左の、右下
+                // 左下の、右上
+                directions = new int[]{DIRECTION_BOTTOM, DIRECTION_LEFT, DIRECTION_BOTTOM_LEFT};
+                positions =  new int[]{POSITION_UL, POSITION_LR, POSITION_UR};
+                break;
+            case POSITION_LR:
+                // 基準マスの、右下 に対し、
+                // チェック対象となる位置の情報
+                // 下の、右上
+                // 右の、左下
+                // 右下の、左上
+                directions = new int[]{DIRECTION_BOTTOM, DIRECTION_RIGHT, DIRECTION_BOTTOM_RIGHT};
+                positions =  new int[]{POSITION_UR,POSITION_UL,POSITION_UL};
+                break;
+            default:
+                return false;
+        }
+
+        // 正否判定用
+        boolean flagMatch = true; // マッチしている(可能性がある)=true、いない=false
+
+        // 基準位置のコードを取得
+        int codeGroup = code / 4; // 当面は4つマッチとする
+
+        //Log.d("check","resID="+resID+",code="+code);
+
+        // SELECT_NONEでなければ、周辺のコードを取得
+        if (code != SELECT_NONE) {
+
+            for (int i = 0; i < directions.length; i++) {
+                int targetCode = getAroundCode(mAnimeDestIndex, directions[i], positions[i]);
+                //Log.d("check","targetCode="+targetCode);
+                // マッチしないまたはSELECT_NONEあれば判定終了
+                if ( targetCode == SELECT_NONE || (targetCode / 4) != codeGroup) {
+                    flagMatch = false;
+                    return flagMatch;
+                }
+            }
+
+        } else {
+            flagMatch = false;
+        }
+        // マッチしていないことが確定していたらループを中断
+        if (flagMatch == false) {
+            return flagMatch;
+        }
+
+        Log.d("check","4 pieces matched at "+mAnimeDestIndex+" !");
+
+        return flagMatch;
+
+    }
+
+    // 指定位置の画像コードを返す
+    private int getAroundCode(int srcViewIndex,int direction,int position) {
         int targetViewIndex;
         int targetResID;
         int targetCode;
-        // 左、の右下のコードを取得
-        targetViewIndex = getDestViewIndex(srcViewIndex,direction);
+        // srcViewIndexのCustomViewから見て、direction方向にあるCustomViewのIDを取得
+        targetViewIndex = getDestViewIndex(srcViewIndex,direction,false);
         if (targetViewIndex == SELECT_NONE) {
+            //Log.d("getAroundCode","targetViewIndex=SELECT_NONE");
             return SELECT_NONE;
         }
+        // CustomViewの保持する画像リソースIDを取得
         targetResID = mImagePieces.get(targetViewIndex).getResID();
         if (targetResID == SELECT_NONE) {
+            //Log.d("getAroundCode","targetResID=SELECT_NONE");
             return SELECT_NONE;
         }
+        // 画像リソースのposition位置のコードを取得
         targetCode = aryImgRes[targetResID][position];
+        return targetCode;
+    }
+
+    // 指定位置の画像コードをtargetCodeで更新し、
+    // CustomViewの画像を更新する
+    private int vanishImage(int srcViewIndex,int direction,int position,int targetCode) {
+        int targetViewIndex;
+        int targetResID;
+        //int targetCode;
+        // srcViewIndexのCustomViewから見て、direction方向にあるCustomViewのIDを取得
+        targetViewIndex = getDestViewIndex(srcViewIndex,direction,false);
+        if (targetViewIndex == SELECT_NONE) {
+            //Log.d("getAroundCode","targetViewIndex=SELECT_NONE");
+            return SELECT_NONE;
+        }
+        // CustomViewの保持する画像リソースIDを取得
+        targetResID = mImagePieces.get(targetViewIndex).getResID();
+        if (targetResID == SELECT_NONE) {
+            //Log.d("getAroundCode","targetResID=SELECT_NONE");
+            return SELECT_NONE;
+        }
+        // 画像リソースのposition位置のコードを書き換える
+        aryImgRes[targetResID][position] = targetCode;
+
+        int k = targetResID;
+
+        // 画像初期設定のパクリ（ここから）
+
+        // 表示するビットマップ群の定義
+        // ビュー内の4箇所に、配置すべき画像情報を加工して配置したビットマップを生成
+        // CustomViewは全部同じサイズのはずなので、サンプルとして左上1個を持ってくる
+        CustomView sampleView = mImagePieces.get(0);
+        // OnCreateではゼロになる
+        // https://qiita.com/m1takahashi/items/6fa49b9e44f4ab5c4055
+        // http://shim0mura.hatenadiary.jp/entry/2016/01/11/013000
+        // http://y-anz-m.blogspot.jp/2010/01/android-view.html
+        int viewWidth = sampleView.getWidth();
+        int viewHeight = sampleView.getHeight();
+        int viewWidthHalf = viewWidth / 2;
+        int viewHeightHalf = viewHeight / 2;
+        // http://cheesememo.blog39.fc2.com/blog-entry-740.html
+        // https://developer.android.com/reference/android/graphics/Bitmap.Config.html
+
+        Resources resources = getResources();
+
+        Bitmap bitmapBase = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmapBase);
+        canvas.drawColor(mBackgroundColor); // 背景色を指定
+
+        Bitmap bitmapWork1;
+        Bitmap bitmapWork2;
+        int resId;
+        for (int j = 0; j < 2; j++) {
+            for (int i = 0; i < 2; i++) {
+                int BitmapId = i + j * 2;
+                if (aryImgRes[k][BitmapId] != SELECT_NONE) {
+                    // コードをリソースIDへ変換
+                    resId = c2r.getResID(aryImgRes[k][BitmapId]);
+                    // Bitmapをリソースから読み込む
+                    bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
+                    // サイズ補正（AccBall参照）
+                    bitmapWork2 = Bitmap.createScaledBitmap(bitmapWork1,
+                            viewWidthHalf, viewHeightHalf, false);
+                    // View上に描画
+                    canvas.drawBitmap(bitmapWork2,
+                            viewWidthHalf * i, viewHeightHalf * j, (Paint)null);
+                }
+            }
+        }
+
+        // 該当CustomViewへ画像を設置
+        //CustomView destImageView = mImagePieces.get(aryImgRes[k][4]);
+        CustomView destImageView = mImagePieces.get(targetViewIndex);
+        destImageView.setImageBitmap(bitmapBase);
+        //destImageView.setResID(k);
+        //destImageView.setVisibility(View.VISIBLE);
+        //mBitmapList.add(bitmapBase);
+        mBitmapList.set(targetResID,bitmapBase); // 置き換え
+        // 画像初期設定のパクリ（ここまで）
+
         return targetCode;
     }
 
@@ -759,8 +990,9 @@ public class MainActivity extends AppCompatActivity {
         return index;
     }
 
-    // フリックによる移動先のCustomViewのIDを取得(無いかもしれない)
-    private int getDestViewIndex(int srcIndex,int direction) {
+    // フリックによる移動先のCustomViewのIDを取得(無いかもしれない) (flagMove=true)
+    // あるいは、単に指定方向のCustomViewのIDを取得(無いかもしれない) (flagMove=false)
+    private int getDestViewIndex(int srcIndex,int direction, boolean flagMove) {
 
         int destIndex = SELECT_NONE;
 
@@ -865,8 +1097,8 @@ public class MainActivity extends AppCompatActivity {
                 break;
 
         }
-        // 移動不可確定
-        if (destIndex == SELECT_NONE) {
+        // 移動不可確定、または、移動先を返す
+        if (destIndex == SELECT_NONE || flagMove == false) {
             return destIndex;
         }
 
