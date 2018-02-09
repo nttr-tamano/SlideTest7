@@ -3,6 +3,7 @@ package com.example.nttr.slidetest5;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -69,12 +70,13 @@ public class MainActivity extends AppCompatActivity {
     //CustomView[] cv = new CustomView[4];
     //final int UNDEFINED_RESOURCE = 0;        // CustomViewと共通
     private int mBackgroundColor = Color.CYAN;
+     private int mVanishColor = R.color.hotpink;
 
     // 4分割の添え字
-    private final int POSITION_UL = 0; // 左上
-    private final int POSITION_UR = 1; // 右上
-    private final int POSITION_LL = 2; // 左下
-    private final int POSITION_LR = 3; // 右下
+    private final int PART_UL = 0; // 左上
+    private final int PART_UR = 1; // 右上
+    private final int PART_LL = 2; // 左下
+    private final int PART_LR = 3; // 右下
     // コード値の組と初期配置先
     int aryImgRes[][] = {
             {SELECT_NONE, SELECT_NONE,
@@ -593,29 +595,56 @@ public class MainActivity extends AppCompatActivity {
                     switch (mAnimeDirection) {
                         case DIRECTION_TOP:
                             // 左上、右上
-                            flag1 = checkMatch(resID,POSITION_UL);
-                            flag2 = checkMatch(resID,POSITION_UR);
+                            flag1 = checkMatch(resID,PART_UL);
+                            flag2 = checkMatch(resID,PART_UR);
+
+                            // 消去
+                            if (flag1 == true) {
+                                vanishMatch(PART_UL);
+                            }
+                            if (flag2 == true) {
+                                vanishMatch(PART_UR);
+                            }
                             break;
                         case DIRECTION_LEFT:
                             // 左上、左下
-                            flag1 = checkMatch(resID,POSITION_UL);
-                            flag2 = checkMatch(resID,POSITION_LL);
+                            flag1 = checkMatch(resID,PART_UL);
+                            flag2 = checkMatch(resID,PART_LL);
 
-                            // vanish test
+                            // 消去
+                            if (flag1 == true) {
+                                vanishMatch(PART_UL);
+                            }
                             if (flag2 == true) {
-                                vanishImage(mAnimeDestIndex,DIRECTION_BOTTOM,POSITION_UL,SELECT_NONE);
+                                vanishMatch(PART_LL);
                             }
 
                             break;
                         case DIRECTION_RIGHT:
                             // 右上、右下
-                            flag1 = checkMatch(resID,POSITION_UR);
-                            flag2 = checkMatch(resID,POSITION_LR);
+                            flag1 = checkMatch(resID,PART_UR);
+                            flag2 = checkMatch(resID,PART_LR);
+
+                            // 消去
+                            if (flag1 == true) {
+                                vanishMatch(PART_UR);
+                            }
+                            if (flag2 == true) {
+                                vanishMatch(PART_LR);
+                            }
                             break;
                         case DIRECTION_BOTTOM:
                             // 左下、右下
-                            flag1 = checkMatch(resID,POSITION_LL);
-                            flag2 = checkMatch(resID,POSITION_LR);
+                            flag1 = checkMatch(resID,PART_LL);
+                            flag2 = checkMatch(resID,PART_LR);
+
+                            // 消去
+                            if (flag1 == true) {
+                                vanishMatch(PART_LL);
+                            }
+                            if (flag2 == true) {
+                                vanishMatch(PART_LR);
+                            }
                             break;
                     }
                     Log.d("check","mAnimeDirection="+mAnimeDirection
@@ -642,7 +671,7 @@ public class MainActivity extends AppCompatActivity {
 //
 //                        // 基準位置のコードを取得
 //                        int resID = destImageView.getResID();
-//                        int code = aryImgRes[resID][POSITION_LL];
+//                        int code = aryImgRes[resID][PART_LL];
 //                        int codeGroup = code / 4; // 当面は4つマッチとする
 //
 //                        Log.d("check","resID="+resID+",code="+code);
@@ -655,7 +684,7 @@ public class MainActivity extends AppCompatActivity {
 //                            // 下の、左上
 //                            // 左下の、右上
 //                            int directions[] = {DIRECTION_LEFT, DIRECTION_BOTTOM, DIRECTION_BOTTOM_LEFT};
-//                            int positions[] = {POSITION_LR,POSITION_UL,POSITION_UR};
+//                            int positions[] = {PART_LR,PART_UL,PART_UR};
 //
 //                            for (int i = 0; i < directions.length; i++) {
 //                                int targetCode = getAroundCode(mAnimeDestIndex, directions[i], positions[i]);
@@ -728,55 +757,91 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    // 模様の成立をチェックする
-    private boolean checkMatch(int resID, int position) {
+    // 基本位置の部位に対応するポジション(チェック対象の方向(相対位置)・部位の組)
+    private class Positions {
+        private int[] directions = null;        // 方向
+        private int[] parts = null;             // 部位
+        private int basePart = SELECT_NONE;     // コンストラクタ生成時の引数
 
-        int code = aryImgRes[resID][position];
+        // コンストラクタ
+        // 有効な引数毎に決まったメンバ配列を生成する
+        public Positions(int basePart) {
+            switch(basePart) {
+                case PART_UL:
+                    // 基準マスの、左上 に対し、
+                    // チェック対象となる位置の情報
+                    // 上の、左下
+                    // 左の、右上
+                    // 左上の、右下
+                    directions = new int[]{DIRECTION_TOP, DIRECTION_LEFT, DIRECTION_TOP_LEFT};
+                    parts = new int[]{PART_LL, PART_UR, PART_LR};
+                    break;
+                case PART_UR:
+                    // 基準マスの、右上 に対し、
+                    // チェック対象となる位置の情報
+                    // 上の、右下
+                    // 右の、左上
+                    // 右上の、左下
+                    directions = new int[]{DIRECTION_TOP, DIRECTION_RIGHT, DIRECTION_TOP_RIGHT};
+                    parts = new int[]{PART_LR, PART_UL, PART_LL};
+                    break;
+                case PART_LL:
+                    // 基準マスの、左下 に対し、
+                    // チェック対象となる位置の情報
+                    // 下の、左上
+                    // 左の、右下
+                    // 左下の、右上
+                    directions = new int[]{DIRECTION_BOTTOM, DIRECTION_LEFT, DIRECTION_BOTTOM_LEFT};
+                    parts = new int[]{PART_UL, PART_LR, PART_UR};
+                    break;
+                case PART_LR:
+                    // 基準マスの、右下 に対し、
+                    // チェック対象となる位置の情報
+                    // 下の、右上
+                    // 右の、左下
+                    // 右下の、左上
+                    directions = new int[]{DIRECTION_BOTTOM, DIRECTION_RIGHT, DIRECTION_BOTTOM_RIGHT};
+                    parts = new int[]{PART_UR,PART_UL,PART_UL};
+                    break;
+                default:
+                    return;
+            }
+            this.basePart = basePart;
+        }
+
+        // 有効な要素数を返す
+        public int getSize() {
+            if (basePart != SELECT_NONE) {
+                return Math.min(directions.length, parts.length);
+            } else {
+                return SELECT_NONE;
+            }
+        }
+
+        // 指定の方向を返す
+        public int getDirection(int idx) {
+            return directions[idx];
+        }
+
+        // 指定の部位を返す
+        public int getPart(int idx) {
+            return parts[idx];
+        }
+    }
+
+    // 模様の成立をチェックする
+    private boolean checkMatch(int resID, int part) {
+        int code = aryImgRes[resID][part];
         // 配列の宣言と初期化を別々に行う
         // http://blog.goo.ne.jp/xypenguin/e/e1cfcc0b1a8c3acdbe023bbef8944dac
-        int[] directions; // = new int[3];
-        int[] positions; //  = new int[3];
+        //int[] directions = null;    // = new int[3];
+        //int[] positions = null;     // = new int[3];
 
-        // direction方向毎にチェック対象が異なる
-        switch(position) {
-            case POSITION_UL:
-                // 基準マスの、左上 に対し、
-                // チェック対象となる位置の情報
-                // 上の、左下
-                // 左の、右上
-                // 左上の、右下
-                directions = new int[]{DIRECTION_TOP, DIRECTION_LEFT, DIRECTION_TOP_LEFT};
-                positions =  new int[]{POSITION_LL, POSITION_UR, POSITION_LR};
-                break;
-            case POSITION_UR:
-                // 基準マスの、右上 に対し、
-                // チェック対象となる位置の情報
-                // 上の、右下
-                // 右の、左上
-                // 右上の、左下
-                directions = new int[]{DIRECTION_TOP, DIRECTION_RIGHT, DIRECTION_TOP_RIGHT};
-                positions =  new int[]{POSITION_LR, POSITION_UL, POSITION_LL};
-                break;
-            case POSITION_LL:
-                // 基準マスの、左下 に対し、
-                // チェック対象となる位置の情報
-                // 下の、左上
-                // 左の、右下
-                // 左下の、右上
-                directions = new int[]{DIRECTION_BOTTOM, DIRECTION_LEFT, DIRECTION_BOTTOM_LEFT};
-                positions =  new int[]{POSITION_UL, POSITION_LR, POSITION_UR};
-                break;
-            case POSITION_LR:
-                // 基準マスの、右下 に対し、
-                // チェック対象となる位置の情報
-                // 下の、右上
-                // 右の、左下
-                // 右下の、左上
-                directions = new int[]{DIRECTION_BOTTOM, DIRECTION_RIGHT, DIRECTION_BOTTOM_RIGHT};
-                positions =  new int[]{POSITION_UR,POSITION_UL,POSITION_UL};
-                break;
-            default:
-                return false;
+        // チェック対象をクラスで生成
+        Positions positions = new Positions(part);
+        // ポジションが取得できなかったら不成立
+        if (positions.getSize() == SELECT_NONE) {
+            return false;
         }
 
         // 正否判定用
@@ -784,14 +849,13 @@ public class MainActivity extends AppCompatActivity {
 
         // 基準位置のコードを取得
         int codeGroup = code / 4; // 当面は4つマッチとする
-
         //Log.d("check","resID="+resID+",code="+code);
 
         // SELECT_NONEでなければ、周辺のコードを取得
         if (code != SELECT_NONE) {
-
-            for (int i = 0; i < directions.length; i++) {
-                int targetCode = getAroundCode(mAnimeDestIndex, directions[i], positions[i]);
+            for (int i = 0; i < positions.getSize(); i++) {
+                int targetCode = getAroundCode(mAnimeDestIndex,
+                        positions.getDirection(i), positions.getPart(i));
                 //Log.d("check","targetCode="+targetCode);
                 // マッチしないまたはSELECT_NONEあれば判定終了
                 if ( targetCode == SELECT_NONE || (targetCode / 4) != codeGroup) {
@@ -807,14 +871,11 @@ public class MainActivity extends AppCompatActivity {
         if (flagMatch == false) {
             return flagMatch;
         }
-
         Log.d("check","4 pieces matched at "+mAnimeDestIndex+" !");
-
         return flagMatch;
-
     }
 
-    // 指定位置の画像コードを返す
+    // 周辺の指定位置の画像コードを返す
     private int getAroundCode(int srcViewIndex,int direction,int position) {
         int targetViewIndex;
         int targetResID;
@@ -836,15 +897,41 @@ public class MainActivity extends AppCompatActivity {
         return targetCode;
     }
 
+    private boolean vanishMatch(int part) {
+
+        // チェック対象をクラスで生成
+        Positions positions = new Positions(part);
+        // ポジションが取得できなかったら不成立
+        if (positions.getSize() == SELECT_NONE) {
+            return false;
+        }
+
+        // 各部位の画像消去
+        for (int i = 0; i < positions.getSize(); i++) {
+            vanishImage(mAnimeDestIndex,
+                    positions.getDirection(i), positions.getPart(i), SELECT_NONE);
+        }
+        vanishImage(mAnimeDestIndex, DIRECTION_NONE, part, SELECT_NONE);
+        return true;
+    }
+
     // 指定位置の画像コードをtargetCodeで更新し、
     // CustomViewの画像を更新する
     //課題: 消す場合は、SELECT_NONEでないコードと画像を設定するべき？
-    private int vanishImage(int srcViewIndex,int direction,int position,int targetCode) {
+    @SuppressLint("ResourceAsColor")
+    private int vanishImage(int srcViewIndex, int direction, int part, int targetCode) {
         int targetViewIndex;
         int targetResID;
         //int targetCode;
         // srcViewIndexのCustomViewから見て、direction方向にあるCustomViewのIDを取得
-        targetViewIndex = getDestViewIndex(srcViewIndex,direction,false);
+        if (direction == DIRECTION_NONE) {
+            // 方向なしは、引数自身
+            targetViewIndex = srcViewIndex;
+        } else {
+            // 指定された方向から、IDを探す
+            targetViewIndex = getDestViewIndex(srcViewIndex, direction, false);
+        }
+        // 見つからなかったら終了
         if (targetViewIndex == SELECT_NONE) {
             //Log.d("getAroundCode","targetViewIndex=SELECT_NONE");
             return SELECT_NONE;
@@ -855,10 +942,8 @@ public class MainActivity extends AppCompatActivity {
             //Log.d("getAroundCode","targetResID=SELECT_NONE");
             return SELECT_NONE;
         }
-        // 画像リソースのposition位置のコードを書き換える
-        aryImgRes[targetResID][position] = targetCode;
-
-        int k = targetResID;
+        // 画像リソースのpart位置のコードを書き換える
+        aryImgRes[targetResID][part] = targetCode;
 
         Log.d("vanish","targetResID="+targetResID);
 
@@ -877,23 +962,23 @@ public class MainActivity extends AppCompatActivity {
         int viewWidthHalf = viewWidth / 2;
         int viewHeightHalf = viewHeight / 2;
 
-        // 画像更新位置
+        // 画像更新位置の決定
         int bitmapTop = 0;
         int bitmapLeft = 0;
-        switch (position) {
-            case POSITION_UL:
+        switch (part) {
+            case PART_UL:
                 bitmapTop = 0;
                 bitmapLeft = 0;
                 break;
-            case POSITION_UR:
+            case PART_UR:
                 bitmapTop = 0;
                 bitmapLeft = viewWidthHalf;
                 break;
-            case POSITION_LL:
+            case PART_LL:
                 bitmapTop = viewHeightHalf;
                 bitmapLeft = 0;
                 break;
-            case POSITION_LR:
+            case PART_LR:
                 bitmapTop = viewHeightHalf;
                 bitmapLeft = viewWidthHalf;
                 break;
@@ -909,21 +994,24 @@ public class MainActivity extends AppCompatActivity {
         Canvas canvas = new Canvas(mBitmapList.get(targetResID));
 
         // コードをリソースIDへ変換
-        int resId = c2r.getResID(aryImgRes[k][position]);
+        int resId = c2r.getResID(aryImgRes[targetResID][part]);
         // Bitmapをリソースから読み込む
         Bitmap bitmapWork1;
         Bitmap bitmapWork2;
-        if (aryImgRes[targetResID][position] != SELECT_NONE) {
+        if (aryImgRes[targetResID][part] != SELECT_NONE) {
             bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
             // サイズ補正（AccBall参照）
             bitmapWork2 = Bitmap.createScaledBitmap(bitmapWork1,
                     viewWidthHalf, viewHeightHalf, false);
-            // View上に描画
         } else {
+            // 消えた後の色だけの画像を生成
             bitmapWork2 = Bitmap.createBitmap(viewWidthHalf, viewHeightHalf, Bitmap.Config.ARGB_8888);
             Canvas canvas2 = new Canvas(bitmapWork2);
-            canvas2.drawColor(Color.GREEN);
+            // 定義した色を使用
+            // http://furudate.hatenablog.com/entry/2013/06/19/010953
+            canvas2.drawColor(resources.getColor(mVanishColor));
         }
+        // 用意した画像を指定の位置へ追加
         canvas.drawBitmap(bitmapWork2,
                 bitmapLeft, bitmapTop, (Paint) null);
 
