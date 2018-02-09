@@ -838,6 +838,7 @@ public class MainActivity extends AppCompatActivity {
 
     // 指定位置の画像コードをtargetCodeで更新し、
     // CustomViewの画像を更新する
+    //課題: 消す場合は、SELECT_NONEでないコードと画像を設定するべき？
     private int vanishImage(int srcViewIndex,int direction,int position,int targetCode) {
         int targetViewIndex;
         int targetResID;
@@ -859,6 +860,8 @@ public class MainActivity extends AppCompatActivity {
 
         int k = targetResID;
 
+        Log.d("vanish","targetResID="+targetResID);
+
         // 画像初期設定のパクリ（ここから）
 
         // 表示するビットマップ群の定義
@@ -873,44 +876,88 @@ public class MainActivity extends AppCompatActivity {
         int viewHeight = sampleView.getHeight();
         int viewWidthHalf = viewWidth / 2;
         int viewHeightHalf = viewHeight / 2;
+
+        // 画像更新位置
+        int bitmapTop = 0;
+        int bitmapLeft = 0;
+        switch (position) {
+            case POSITION_UL:
+                bitmapTop = 0;
+                bitmapLeft = 0;
+                break;
+            case POSITION_UR:
+                bitmapTop = 0;
+                bitmapLeft = viewWidthHalf;
+                break;
+            case POSITION_LL:
+                bitmapTop = viewHeightHalf;
+                bitmapLeft = 0;
+                break;
+            case POSITION_LR:
+                bitmapTop = viewHeightHalf;
+                bitmapLeft = viewWidthHalf;
+                break;
+        }
+
         // http://cheesememo.blog39.fc2.com/blog-entry-740.html
         // https://developer.android.com/reference/android/graphics/Bitmap.Config.html
-
         Resources resources = getResources();
 
-        Bitmap bitmapBase = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmapBase);
-        canvas.drawColor(mBackgroundColor); // 背景色を指定
+        //Bitmap bitmapBase = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
+        //Canvas canvas = new Canvas(bitmapBase);
+        //canvas.drawColor(mBackgroundColor); // 背景色を指定
+        Canvas canvas = new Canvas(mBitmapList.get(targetResID));
 
+        // コードをリソースIDへ変換
+        int resId = c2r.getResID(aryImgRes[k][position]);
+        // Bitmapをリソースから読み込む
         Bitmap bitmapWork1;
         Bitmap bitmapWork2;
-        int resId;
-        for (int j = 0; j < 2; j++) {
-            for (int i = 0; i < 2; i++) {
-                int BitmapId = i + j * 2;
-                if (aryImgRes[k][BitmapId] != SELECT_NONE) {
-                    // コードをリソースIDへ変換
-                    resId = c2r.getResID(aryImgRes[k][BitmapId]);
-                    // Bitmapをリソースから読み込む
-                    bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
-                    // サイズ補正（AccBall参照）
-                    bitmapWork2 = Bitmap.createScaledBitmap(bitmapWork1,
-                            viewWidthHalf, viewHeightHalf, false);
-                    // View上に描画
-                    canvas.drawBitmap(bitmapWork2,
-                            viewWidthHalf * i, viewHeightHalf * j, (Paint)null);
-                }
-            }
+        if (aryImgRes[targetResID][position] != SELECT_NONE) {
+            bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
+            // サイズ補正（AccBall参照）
+            bitmapWork2 = Bitmap.createScaledBitmap(bitmapWork1,
+                    viewWidthHalf, viewHeightHalf, false);
+            // View上に描画
+        } else {
+            bitmapWork2 = Bitmap.createBitmap(viewWidthHalf, viewHeightHalf, Bitmap.Config.ARGB_8888);
+            Canvas canvas2 = new Canvas(bitmapWork2);
+            canvas2.drawColor(Color.GREEN);
         }
+        canvas.drawBitmap(bitmapWork2,
+                bitmapLeft, bitmapTop, (Paint) null);
+
+//        Bitmap bitmapWork1;
+//        Bitmap bitmapWork2;
+//        int resId;
+//        for (int j = 0; j < 2; j++) {
+//            for (int i = 0; i < 2; i++) {
+//                int BitmapId = i + j * 2;
+//                if (aryImgRes[k][BitmapId] != SELECT_NONE) {
+//                    // コードをリソースIDへ変換
+//                    resId = c2r.getResID(aryImgRes[k][BitmapId]);
+//                    // Bitmapをリソースから読み込む
+//                    bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
+//                    // サイズ補正（AccBall参照）
+//                    bitmapWork2 = Bitmap.createScaledBitmap(bitmapWork1,
+//                            viewWidthHalf, viewHeightHalf, false);
+//                    // View上に描画
+//                    canvas.drawBitmap(bitmapWork2,
+//                            viewWidthHalf * i, viewHeightHalf * j, (Paint)null);
+//                }
+//            }
+//        }
 
         // 該当CustomViewへ画像を設置
         //CustomView destImageView = mImagePieces.get(aryImgRes[k][4]);
         CustomView destImageView = mImagePieces.get(targetViewIndex);
-        destImageView.setImageBitmap(bitmapBase);
+        //destImageView.setImageBitmap(bitmapBase);
+        //destImageView.setImageBitmap(bitmapWork2);
+        destImageView.setImageBitmap(mBitmapList.get(targetResID));
         //destImageView.setResID(k);
         //destImageView.setVisibility(View.VISIBLE);
         //mBitmapList.add(bitmapBase);
-        mBitmapList.set(targetResID,bitmapBase); // 置き換え
+        //mBitmapList.set(targetResID,bitmapWork2); // 置き換え
         // 画像初期設定のパクリ（ここまで）
 
         return targetCode;
