@@ -16,7 +16,6 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
-import android.view.SurfaceHolder;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -34,15 +33,16 @@ public class MainActivity extends AppCompatActivity {
     private int mPieceY = 4; // 原則同数にする。異なる場合、各マスが長方形になる
 
     // レイアウト関連
-    private final int PIECE_MARGIN = 8;    // 各マスのマージン。15: mPieceX=4で調整
+    private final int PIECE_MARGIN = 8;    // 各マスのマージン。mPieceX=4で調整
 
-    // スライドエリアの各パネルをLinearLayoutで管理し、配列化
+    // スライドエリアの各パネルをCustomViewで動的に生成し、LinearLayoutで格子状に配置するが、
+    // 管理はリストで行う
     //ArrayList<ImageView> mImagePieces = new ArrayList<ImageView>();
     ArrayList<CustomView> mImagePieces = new ArrayList<>();
 
-    // 操作対象マスの管理用(-1は操作対象なし)
+    // 操作対象マスの諸々の管理用(-1は操作対象なし)
     private final int SELECT_NONE = -1;
-    private int mPieceTag = SELECT_NONE;
+    //private int mPieceTag = SELECT_NONE;
 
     // フリック方向の定数
     final int DIRECTION_NONE   = 0;
@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
 
     // SurfaceView関連(Activityに配置済み想定)
     TranslationSurfaceView mSurfaceView;
-    SurfaceHolder mHolder;
+    //SurfaceHolder mHolder;
 
     // スレッドを用いたアニメーション用
     // Thread mThread;
@@ -70,27 +70,56 @@ public class MainActivity extends AppCompatActivity {
     //CustomView[] cv = new CustomView[4];
     //final int UNDEFINED_RESOURCE = 0;        // CustomViewと共通
     private int mBackgroundColor = Color.CYAN;
-     private int mVanishColor = R.color.hotpink;
+    private int mVanishColor = R.color.hotpink;
 
-    // 4分割の添え字
+    // 4分割の部位の添え字(aryImgRes[][]の第2要素の添え字の一部
     private final int PART_UL = 0; // 左上
     private final int PART_UR = 1; // 右上
     private final int PART_LL = 2; // 左下
     private final int PART_LR = 3; // 右下
-    // コード値の組と初期配置先
+
+    // コード値の組と、初期配置先CustomViewの添え字
+//    // 1個 // ステージ1用
+//    int aryImgRes[][] = {
+//            {SELECT_NONE, SELECT_NONE, SELECT_NONE,           3, 4},
+//            {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 7},
+//            {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
+//            {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
+//    };
+
+//    // 上下2個 // ステージ2用
+//    int aryImgRes[][] = {
+//            {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
+//            {SELECT_NONE, SELECT_NONE,           6, SELECT_NONE, 1},
+//            {SELECT_NONE,           5, SELECT_NONE,           3, 4},
+//            {          4, SELECT_NONE,           2, SELECT_NONE, 7},
+//            {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
+//            {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
+//    };
+
+//    // 左右2個 // ステージ3用
+//    int aryImgRes[][] = {
+//            {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
+//            {SELECT_NONE, SELECT_NONE,           6,           3, 1},
+//            {SELECT_NONE,           5, SELECT_NONE, SELECT_NONE, 4},
+//            {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 2},
+//            {          4,           1, SELECT_NONE, SELECT_NONE,13},
+//            {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 6},
+//    };
+
+    // 左右2個+2個 // ステージ4用
     int aryImgRes[][] = {
-            {SELECT_NONE, SELECT_NONE,
-                    SELECT_NONE,3,4},
-            {SELECT_NONE, SELECT_NONE,
-                    2, SELECT_NONE,7},
-            {SELECT_NONE, 1,
-                    SELECT_NONE,SELECT_NONE,8},
-            {0, SELECT_NONE,
-                    SELECT_NONE,SELECT_NONE,9},
+            {         12, SELECT_NONE, SELECT_NONE,           7, 0},
+            {          8,          13,           6,           3, 1},
+            {SELECT_NONE,           5, SELECT_NONE,          11, 4},
+            {SELECT_NONE,           9,           2, SELECT_NONE, 2},
+            {          4,           1,          10,          15,13},
+            {          0, SELECT_NONE,          14, SELECT_NONE, 6},
     };
 
     // コード値をリソースIDへ変換する定数配列っぽいクラス
     private CodeToResource c2r = new CodeToResource();
+    // CustomViewやValueAnimatorで表示する画像の配列
     ArrayList<Bitmap> mBitmapList = new ArrayList<>();
     int mBitmapID = SELECT_NONE;
     boolean flagSetBitmap = false;  // 処理を1回だけ実行するためのフラグ
@@ -99,12 +128,12 @@ public class MainActivity extends AppCompatActivity {
     int mAnimeSrcIndex = SELECT_NONE;        // アニメーションの移動元のID
     int mAnimeDestIndex = SELECT_NONE;       // アニメーションの移動先のID
 
-    final int ANIME_DURATION = 300;
+    final int ANIME_DURATION = 200; //300;
 
     // アニメーション時間決定用
     // ANIME_FRAME * ANIME_WAIT_MSEC / 1000 [sec] がアニメーション時間
-    final int ANIME_FRAME = 12;
-    final int ANIME_WAIT_MSEC = 300; // msec
+    //final int ANIME_FRAME = 12;
+    //final int ANIME_WAIT_MSEC = 300; // msec
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -306,6 +335,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // タッチイベントのリスナー
+    // fling (過去形)flung (過去分詞)flung
     private final GestureDetector.SimpleOnGestureListener mOnGestureListener
              = new GestureDetector.SimpleOnGestureListener() {
 
@@ -322,7 +352,7 @@ public class MainActivity extends AppCompatActivity {
             int directionY = DIRECTION_NONE;
             int direction  = DIRECTION_NONE;
 
-            int flingedViewIndex = -1;
+            int flungViewIndex = SELECT_NONE;
 
             // onDrawを受け取る設定
             // https://developer.android.com/reference/android/view/View.html#setWillNotDraw%28boolean%29
@@ -332,14 +362,19 @@ public class MainActivity extends AppCompatActivity {
             try {
 
                 // どのPieceのView上かチェック
-                flingedViewIndex = getViewIndex(event1.getX(), event1.getY());
-                if (SELECT_NONE < flingedViewIndex && flingedViewIndex < mImagePieces.size()) {
-                    mPieceTag = flingedViewIndex;
-                } else {
+                flungViewIndex = getViewIndex(event1.getX(), event1.getY());
+//                if (SELECT_NONE < flungViewIndex && flungViewIndex < mImagePieces.size()) {
+//                    mPieceTag = flungViewIndex;
+//                } else {
+//                    return false;
+//                }
+                // 有効な値でなければ処理しない
+                if (flungViewIndex <= SELECT_NONE || mImagePieces.size() <= flungViewIndex) {
                     return false;
                 }
+
                 //　非表示状態のCustomViewだったら処理しない
-                if (mImagePieces.get(mPieceTag).getVisibility() != View.VISIBLE) {
+                if (mImagePieces.get(flungViewIndex).getVisibility() != View.VISIBLE) {
                     return false;
                 }
 
@@ -380,12 +415,12 @@ public class MainActivity extends AppCompatActivity {
                 // X軸は、右が大きい。Y軸は下が大きい。
                 if (Math.abs(distance_x) > Math.abs(distance_y) * SLOPE_RATE) {
                     // X方向が大きい
-                    Log.d("onFling", mPieceTag + "が" + strX + "方向");
+                    Log.d("onFling", flungViewIndex + "が" + strX + "方向");
                     direction = directionX;
 
                 } else if (Math.abs(distance_x) * SLOPE_RATE < Math.abs(distance_y)) {
                     // Y方向が大きい
-                    Log.d("onFling",mPieceTag + "が" + strY + "方向");
+                    Log.d("onFling",flungViewIndex + "が" + strY + "方向");
                     direction = directionY;
 
                 } else {
@@ -399,19 +434,19 @@ public class MainActivity extends AppCompatActivity {
             }
 
             // 移動先のIDの取得を試みる
-            int destViewIndex = getDestViewIndex(flingedViewIndex, direction, true);
+            int destViewIndex = getDestViewIndex(flungViewIndex, direction, true);
 
             // 移動不可の場合、SELECT_NONEが返るのでアニメーションしない
             if (destViewIndex == SELECT_NONE) {
                 return false;
             }
 
-            Log.d("onFling", "src: "+flingedViewIndex+" dest: "+destViewIndex);
+            Log.d("onFling", "src: "+flungViewIndex+" dest: "+destViewIndex);
 
             if (mAnimator == null || !mAnimator.isRunning()) {
                 // 移動可能なのでアニメーション準備
                 mAnimeDirection = direction;
-                mAnimeSrcIndex = flingedViewIndex;
+                mAnimeSrcIndex = flungViewIndex;
                 mAnimeDestIndex = destViewIndex;
 
                 // 移動先に画像情報をセット
@@ -736,7 +771,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // 移動可能なのでアニメーション準備
                 mAnimeDirection = direction;
-                mAnimeSrcIndex = flingedViewIndex;
+                mAnimeSrcIndex = flungViewIndex;
                 mAnimeDestIndex = destViewIndex;
 
                 // 移動先に画像情報をセット
@@ -801,7 +836,7 @@ public class MainActivity extends AppCompatActivity {
                     // 右の、左下
                     // 右下の、左上
                     directions = new int[]{DIRECTION_BOTTOM, DIRECTION_RIGHT, DIRECTION_BOTTOM_RIGHT};
-                    parts = new int[]{PART_UR,PART_UL,PART_UL};
+                    parts = new int[]{PART_UR,PART_LL,PART_UL};
                     break;
                 default:
                     return;
@@ -876,7 +911,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // 周辺の指定位置の画像コードを返す
-    private int getAroundCode(int srcViewIndex,int direction,int position) {
+    private int getAroundCode(int srcViewIndex,int direction,int part) {
         int targetViewIndex;
         int targetResID;
         int targetCode;
@@ -892,8 +927,8 @@ public class MainActivity extends AppCompatActivity {
             //Log.d("getAroundCode","targetResID=SELECT_NONE");
             return SELECT_NONE;
         }
-        // 画像リソースのposition位置のコードを取得
-        targetCode = aryImgRes[targetResID][position];
+        // 画像リソースの部位のコードを取得
+        targetCode = aryImgRes[targetResID][part];
         return targetCode;
     }
 
