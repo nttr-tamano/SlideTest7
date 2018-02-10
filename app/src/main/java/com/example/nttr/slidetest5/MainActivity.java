@@ -17,10 +17,12 @@ import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import java.util.ArrayList;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
         //implements SurfaceHolder.Callback,Runnable { //implements View.OnTouchListener {
@@ -31,6 +33,10 @@ public class MainActivity extends AppCompatActivity {
     // スライドエリアの縦横のマス数
     private int mPieceX = 4;
     private int mPieceY = 4; // 原則同数にする。異なる場合、各マスが長方形になる
+
+    // ステージ管理系
+    private int mStageNumber = 0; // 初期値は0。loadNewStageを呼ぶと1以上になる
+    Button mBtnNextStage;   // 次へボタン
 
     // レイアウト関連
     private final int PIECE_MARGIN = 8;    // 各マスのマージン。mPieceX=4で調整
@@ -63,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
     // スレッドを用いたアニメーション用
     // Thread mThread;
     private ValueAnimator mAnimator;
-    boolean isAttached = true; //false;
+    //boolean isAttached = true; //false;
 
     // 画像の表示用
     Bitmap mBitmap;
@@ -143,6 +149,18 @@ public class MainActivity extends AppCompatActivity {
         // SurfaceViewの初期設定
         mSurfaceView = (TranslationSurfaceView) findViewById(R.id.surfaceView);
 
+        // 次へボタンの初期設定
+        mBtnNextStage = (Button) findViewById(R.id.btnNextStage);
+        mBtnNextStage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // 次のステージを開始
+                loadNewStage();
+                // ボタン自身は再び非表示にする
+                mBtnNextStage.setVisibility(View.INVISIBLE);
+            }
+        });
+
 //        mHolder = mSurfaceView.getHolder();
 //        // コールバック設定
 //        mHolder.addCallback(this);
@@ -153,13 +171,13 @@ public class MainActivity extends AppCompatActivity {
 
         // ホサカさんが、ThreadをValueAnimatorへ置き換えた
         //mAnimator = ValueAnimator.ofFloat(0f,1f);
-        // onCreateに移動したら再表示で落ちなくなった
+        // onCreateに移動したらアプリ再表示で落ちなくなった
         mAnimator = mSurfaceView.getmAnimator();
 
         // タッチイベントのインスタンスを生成
         mGestureDetector = new GestureDetector(this, mOnGestureListener);
 
-        // Mainが重いので、
+        // Mainが重いので、定義内容の一部をThread化
         // I/Choreographer: Skipped 1042 frames!  The application may be doing too much work on its main thread.
         // http://mussyu1204.myhome.cx/wordpress/it/?p=5
         (new Thread(new Runnable() {
@@ -185,10 +203,10 @@ public class MainActivity extends AppCompatActivity {
                     llRow.setLayoutParams(lpRow);
                     llRow.setGravity(Gravity.CENTER_VERTICAL);
 
+                    // 縦長LinearLayoutへ追加
                     llSlideArea.addView(llRow);
 
                     for (int j = 0; j < mPieceY; j++) {
-
                         // 孫（各パネル）の生成
                         LinearLayout.LayoutParams lpPiece
                                 = new LinearLayout.LayoutParams(
@@ -210,15 +228,14 @@ public class MainActivity extends AppCompatActivity {
 
                         // https://akira-watson.com/android/button-array.html
                         //iv.setTag("ImageView-" + String.valueOf(i*mPieceY+j)); // 多分、1次元配列上の添え字
-                        iv.setTag(String.valueOf(i * mPieceY + j)); // 多分、1次元配列上の添え字
+                        iv.setTag(String.valueOf(i * mPieceY + j)); // mImagePiece<> 1次元配列上の添え字
 
-                        // 親へ追加
+                        // 横長LinearLayoutへ追加
                         llRow.addView(iv);
 
-                        // リストに追加
+                        // 全CustomViewの1次元リストに追加
                         mImagePieces.add(iv);
-
-                        Log.d("MainActivity", "mImagePieces id:" + i * mPieceY + j + " added");
+                        //Log.d("MainActivity", "mImagePieces id:" + i * mPieceY + j + " added");
 
                     } //for j
 
@@ -226,7 +243,10 @@ public class MainActivity extends AppCompatActivity {
 
             }
 
-        })).start();
+        })).start();    // Thread末尾＆開始
+
+        // ここより後にonCreateの定義を書かないこと
+
     }
 
     @Override
@@ -260,59 +280,8 @@ public class MainActivity extends AppCompatActivity {
 //        aryImgRes[][]
 
 
-        // 表示するビットマップ群の定義
-        // ビュー内の4箇所に、配置すべき画像情報を加工して配置したビットマップを生成
-        // CustomViewは全部同じサイズのはずなので、サンプルとして左上1個を持ってくる
-        CustomView sampleView = mImagePieces.get(0);
-        // OnCreateではゼロになる
-        // https://qiita.com/m1takahashi/items/6fa49b9e44f4ab5c4055
-        // http://shim0mura.hatenadiary.jp/entry/2016/01/11/013000
-        // http://y-anz-m.blogspot.jp/2010/01/android-view.html
-        int viewWidth = sampleView.getWidth();
-        int viewHeight = sampleView.getHeight();
-        int viewWidthHalf = viewWidth / 2;
-        int viewHeightHalf = viewHeight / 2;
-        // http://cheesememo.blog39.fc2.com/blog-entry-740.html
-        // https://developer.android.com/reference/android/graphics/Bitmap.Config.html
-
-        Resources resources = getResources();
-
-        // https://www.javadrive.jp/start/array/index9.html
-        // imgRes.length は、2次元配列の第1要素の長さ
-        // imgRes[0].length は、2次元配列の1個目の要素の第2要素の長さ
-        for (int k = 0; k < aryImgRes.length; k++) {
-            Bitmap bitmapBase = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(bitmapBase);
-            canvas.drawColor(mBackgroundColor); // 背景色を指定
-
-            Bitmap bitmapWork1;
-            Bitmap bitmapWork2;
-            int resId;
-            for (int j = 0; j < 2; j++) {
-                for (int i = 0; i < 2; i++) {
-                    int BitmapId = i + j * 2;
-                    if (aryImgRes[k][BitmapId] != SELECT_NONE) {
-                        // コードをリソースIDへ変換
-                        resId = c2r.getResID(aryImgRes[k][BitmapId]);
-                        // Bitmapをリソースから読み込む
-                        bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
-                        // サイズ補正（AccBall参照）
-                        bitmapWork2 = Bitmap.createScaledBitmap(bitmapWork1,
-                                viewWidthHalf, viewHeightHalf, false);
-                        // View上に描画
-                        canvas.drawBitmap(bitmapWork2,
-                                viewWidthHalf * i, viewHeightHalf * j, (Paint)null);
-                    }
-                }
-            }
-
-            // 該当CustomViewへ画像を設置
-            CustomView destImageView = mImagePieces.get(aryImgRes[k][4]);
-            destImageView.setImageBitmap(bitmapBase);
-            destImageView.setResID(k);
-            destImageView.setVisibility(View.VISIBLE);
-            mBitmapList.add(bitmapBase);
-        }
+        // 次のステージを開始
+        loadNewStage();
 
 //        // 表示デモ用に左上(0)だけ表示
 //        mImagePieces.get(0).setVisibility(View.VISIBLE);
@@ -384,15 +353,15 @@ public class MainActivity extends AppCompatActivity {
                 String strX = null;
                 String strY = null;
 
-                // 左右確認
-                // 開始位置から終了位置の移動距離が指定値より大きい
+                // X・Y軸それぞれの方向性の有無を確認
+
                 // X軸の移動速度が指定値より大きい
+                // 開始位置から終了位置の移動距離がSWIPE_MIN_DISTANCEより大きい
                 if (distance_x < -SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
                     strX = "左";
                     directionX = DIRECTION_LEFT;
 
-                // 終了位置から開始位置の移動距離が指定値より大きい
-                // X軸の移動速度が指定値より大きい
+                // 終了位置から開始位置の移動距離がSWIPE_MIN_DISTANCEより大きい
                 } else if (distance_x > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
                     strX = "右";
                     directionX = DIRECTION_RIGHT;
@@ -400,17 +369,19 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 // Y軸の移動速度が指定値より大きい
+                // 終了位置から開始位置の移動距離がSWIPE_MIN_DISTANCEより大きい
                 if (distance_y > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
                     strY = "上";
                     directionY = DIRECTION_TOP;
 
+                // 開始位置から終了位置の移動距離がSWIPE_MIN_DISTANCEより大きい
                 } else if (distance_y < -SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
                     strY = "下";
                     directionY = DIRECTION_BOTTOM;
 
                 }
 
-                // 方向（上記の合成？）
+                // 方向の決定
                 // event1:移動開始 event2:移動終了
                 // X軸は、右が大きい。Y軸は下が大きい。
                 if (Math.abs(distance_x) > Math.abs(distance_y) * SLOPE_RATE) {
@@ -435,32 +406,31 @@ public class MainActivity extends AppCompatActivity {
 
             // 移動先のIDの取得を試みる
             int destViewIndex = getDestViewIndex(flungViewIndex, direction, true);
-
             // 移動不可の場合、SELECT_NONEが返るのでアニメーションしない
             if (destViewIndex == SELECT_NONE) {
                 return false;
             }
 
-            Log.d("onFling", "src: "+flungViewIndex+" dest: "+destViewIndex);
+            //Log.d("onFling", "src: "+flungViewIndex+" dest: "+destViewIndex);
 
-            if (mAnimator == null || !mAnimator.isRunning()) {
+            if (!mAnimator.isRunning()) {
+//            if (mAnimator == null || !mAnimator.isRunning()) {
                 // 移動可能なのでアニメーション準備
                 mAnimeDirection = direction;
                 mAnimeSrcIndex = flungViewIndex;
                 mAnimeDestIndex = destViewIndex;
 
-                // 移動先に画像情報をセット
-                //mImagePieces.get(mAnimeDestIndex).setRes(mImagePieces.get(mAnimeSrcIndex).getRes());
-
-
-                // スレッドの内容の実行許可
-                isAttached = true;
-
+//                // 移動先に画像情報をセット
+//                //mImagePieces.get(mAnimeDestIndex).setRes(mImagePieces.get(mAnimeSrcIndex).getRes());
+//
+//                // スレッドの内容の実行許可
+//                isAttached = true;
+//
 //                // ホサカさんが、ThreadをValueAnimatorへ置き換えた
 //                //mAnimator = ValueAnimator.ofFloat(0f,1f);
 //                mAnimator = mSurfaceView.getmAnimator();
 
-                // アニメーション時間
+                // アニメーション時間を設定
                 mAnimator.setDuration(ANIME_DURATION);
 
                 // 移動元の画像の取得
@@ -478,7 +448,6 @@ public class MainActivity extends AppCompatActivity {
 //                mBitmap = Bitmap.createScaledBitmap(bitmap_work, srcImageView.getMeasuredWidth(),
 //                        srcImageView.getMeasuredHeight(), false);
 
-
                 // 描画開始位置
                 int srcX = srcImageView.getLeft();
                 // Y座標は親View(横長LinearLayout)から取得
@@ -488,7 +457,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Customviewの各パネルのマージンの分だけ表示位置を補正
                 // 縦が不要なのは、余白なしの上位のLinearLayoutの座標を使用しているため
-                //srcX += PIECE_MARGIN;                   // マージン補正
+                //srcX += PIECE_MARGIN;                   // マージン補正←不要
                 srcY += PIECE_MARGIN;                   // マージン補正
 
                 // 移動先座標。switch caseで制御
@@ -497,7 +466,7 @@ public class MainActivity extends AppCompatActivity {
 //                int deltaX = 0;
 //                int deltaY = 0;
 
-                // X方向・Y方向の移動距離
+                // X方向・Y方向の移動先
                 switch (mAnimeDirection) {
                     case DIRECTION_TOP:
                         destX = srcX;
@@ -531,11 +500,6 @@ public class MainActivity extends AppCompatActivity {
 //                        deltaY = ((View) srcImageView.getParent()).getHeight();
                         break;
                 }
-
-                //srcX += PIECE_MARGIN;
-//                srcY += PIECE_MARGIN;
-                //destX += PIECE_MARGIN;
-//                destY += PIECE_MARGIN;
 
                 // アニメーション情報を設定
                 mSurfaceView.setAnimationInfo(mBitmap,srcX,srcY,destX,destY);
@@ -623,68 +587,76 @@ public class MainActivity extends AppCompatActivity {
                     // 模様の成立チェック
                     int resID = destImageView.getResID();
                     // 最低2箇所チェックする必要がある
-                    boolean flag1 = false;
-                    boolean flag2 = false;
+                    boolean flagMatch1 = false;
+                    boolean flagMatch2 = false;
 
                     // フリック方向に基づき、チェック対象を決定
                     switch (mAnimeDirection) {
                         case DIRECTION_TOP:
                             // 左上、右上
-                            flag1 = checkMatch(resID,PART_UL);
-                            flag2 = checkMatch(resID,PART_UR);
+                            flagMatch1 = checkMatch(resID,PART_UL);
+                            flagMatch2 = checkMatch(resID,PART_UR);
 
                             // 消去
-                            if (flag1 == true) {
+                            if (flagMatch1) {
                                 vanishMatch(PART_UL);
                             }
-                            if (flag2 == true) {
+                            if (flagMatch2) {
                                 vanishMatch(PART_UR);
                             }
                             break;
                         case DIRECTION_LEFT:
                             // 左上、左下
-                            flag1 = checkMatch(resID,PART_UL);
-                            flag2 = checkMatch(resID,PART_LL);
+                            flagMatch1 = checkMatch(resID,PART_UL);
+                            flagMatch2 = checkMatch(resID,PART_LL);
 
                             // 消去
-                            if (flag1 == true) {
+                            if (flagMatch1) {
                                 vanishMatch(PART_UL);
                             }
-                            if (flag2 == true) {
+                            if (flagMatch2) {
                                 vanishMatch(PART_LL);
                             }
 
                             break;
                         case DIRECTION_RIGHT:
                             // 右上、右下
-                            flag1 = checkMatch(resID,PART_UR);
-                            flag2 = checkMatch(resID,PART_LR);
+                            flagMatch1 = checkMatch(resID,PART_UR);
+                            flagMatch2 = checkMatch(resID,PART_LR);
 
                             // 消去
-                            if (flag1 == true) {
+                            if (flagMatch1) {
                                 vanishMatch(PART_UR);
                             }
-                            if (flag2 == true) {
+                            if (flagMatch2) {
                                 vanishMatch(PART_LR);
                             }
                             break;
                         case DIRECTION_BOTTOM:
                             // 左下、右下
-                            flag1 = checkMatch(resID,PART_LL);
-                            flag2 = checkMatch(resID,PART_LR);
+                            flagMatch1 = checkMatch(resID,PART_LL);
+                            flagMatch2 = checkMatch(resID,PART_LR);
 
                             // 消去
-                            if (flag1 == true) {
+                            if (flagMatch1) {
                                 vanishMatch(PART_LL);
                             }
-                            if (flag2 == true) {
+                            if (flagMatch2) {
                                 vanishMatch(PART_LR);
                             }
                             break;
                     }
                     Log.d("check","mAnimeDirection="+mAnimeDirection
-                            +",flag1="+flag1+",flag2="+flag2);
+                            +",flagMatch1="+flagMatch1+",flagMatch2="+flagMatch2);
 
+                    // 模様のマッチが成立したらステージクリア判定
+                    if (flagMatch1 || flagMatch2) {
+                        boolean flagClear = checkStageClear();
+                        // ステージクリアしたら、次へボタンを表示
+                        if (flagClear) {
+                            mBtnNextStage.setVisibility(View.VISIBLE);
+                        }
+                    }
 
 //                    if (mAnimeDirection == DIRECTION_TOP || mAnimeDirection == DIRECTION_LEFT) {
 //                        //TODO
@@ -790,6 +762,12 @@ public class MainActivity extends AppCompatActivity {
             }*/
             return false;
         }
+
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            Log.d("onScroll","from:("+e1.getX()+","+e1.getY()+") to:("+e2.getX()+","+e2.getY()+")");
+            return super.onScroll(e1, e2, distanceX, distanceY);
+        }
     };
 
     // 基本位置の部位に対応するポジション(チェック対象の方向(相対位置)・部位の組)
@@ -862,6 +840,22 @@ public class MainActivity extends AppCompatActivity {
         public int getPart(int idx) {
             return parts[idx];
         }
+    }
+
+    // ステージをクリアしたかチェック
+    private boolean checkStageClear() {
+        //boolean flagClear = true; // クリアしている(可能性がある)=true、いない=false(今のところ不要)
+        // 2次元配列のforeach
+        // https://teratail.com/questions/39814
+        for (int[] imgRes: aryImgRes) {     // forjループにするよりは添え字表記が減っている
+            for (int i = 0; i < 4; i++) {   // 当面は4つマッチとする。5つ目を使わないためforeach不可
+                // まだマッチさせていない箇所があれば、クリアしていない
+                if (imgRes[i] != SELECT_NONE) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     // 模様の成立をチェックする
@@ -1279,8 +1273,128 @@ public class MainActivity extends AppCompatActivity {
         if (visible == View.VISIBLE) {
             destIndex = SELECT_NONE;
         }
-
         return destIndex;
+    }
+
+    // 次のステージを開始する
+    void loadNewStage() {
+        // 各パネルの画像情報のクリア
+        for (CustomView cv: mImagePieces) {
+            cv.setResID(SELECT_NONE);
+            cv.setVisibility(View.INVISIBLE);
+        }
+        // ビットマップリストのクリア
+        mBitmapList.clear();
+
+        // ステージ番号をインクリメント
+        mStageNumber++;
+        if (mStageNumber >= 5) {
+            mStageNumber = 1;
+        }
+
+        // http://blog.goo.ne.jp/xypenguin/e/e1cfcc0b1a8c3acdbe023bbef8944dac
+        // コード値の組と、初期配置先CustomViewの添え字を更新
+        switch (mStageNumber) {
+            case 1:
+                // 1個 // ステージ1用
+                aryImgRes = new int[][]{
+                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           3, 4},
+                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 7},
+                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
+                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
+                };
+                break;
+
+            case 2:
+                // 上下2個 // ステージ2用
+                aryImgRes = new int[][]{
+                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
+                        {SELECT_NONE, SELECT_NONE,           6, SELECT_NONE, 1},
+                        {SELECT_NONE,           5, SELECT_NONE,           3, 4},
+                        {          4, SELECT_NONE,           2, SELECT_NONE, 7},
+                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
+                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
+                };
+                break;
+
+            case 3:
+                // 左右2個 // ステージ3用
+                aryImgRes = new int[][]{
+                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
+                        {SELECT_NONE, SELECT_NONE,           6,           3, 1},
+                        {SELECT_NONE,           5, SELECT_NONE, SELECT_NONE, 4},
+                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 2},
+                        {          4,           1, SELECT_NONE, SELECT_NONE,13},
+                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 6},
+                };
+                break;
+
+            case 4:
+                // 左右2個+2個 // ステージ4用
+                aryImgRes = new int[][]{
+                        {         12, SELECT_NONE, SELECT_NONE,           7, 0},
+                        {          8,          13,           6,           3, 1},
+                        {SELECT_NONE,           5, SELECT_NONE,          11, 4},
+                        {SELECT_NONE,           9,           2, SELECT_NONE, 2},
+                        {          4,           1,          10,          15,13},
+                        {          0, SELECT_NONE,          14, SELECT_NONE, 6},
+                };
+                break;
+        }
+
+        // 表示するビットマップ群の定義
+        // ビュー内の4箇所に、配置すべき画像情報を加工して配置したビットマップを生成
+        // CustomViewは全部同じサイズのはずなので、サンプルとして左上1個を持ってくる
+        CustomView sampleView = mImagePieces.get(0);
+        // OnCreateではゼロになる
+        // https://qiita.com/m1takahashi/items/6fa49b9e44f4ab5c4055
+        // http://shim0mura.hatenadiary.jp/entry/2016/01/11/013000
+        // http://y-anz-m.blogspot.jp/2010/01/android-view.html
+        int viewWidth = sampleView.getWidth();
+        int viewHeight = sampleView.getHeight();
+        int viewWidthHalf = viewWidth / 2;
+        int viewHeightHalf = viewHeight / 2;
+        // http://cheesememo.blog39.fc2.com/blog-entry-740.html
+        // https://developer.android.com/reference/android/graphics/Bitmap.Config.html
+
+        Resources resources = getResources();
+
+        // https://www.javadrive.jp/start/array/index9.html
+        // imgRes.length は、2次元配列の第1要素の長さ
+        // imgRes[0].length は、2次元配列の1個目の要素の第2要素の長さ
+        for (int k = 0; k < aryImgRes.length; k++) {
+            Bitmap bitmapBase = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmapBase);
+            canvas.drawColor(mBackgroundColor); // 背景色を指定
+
+            Bitmap bitmapWork1;
+            Bitmap bitmapWork2;
+            int resId;
+            for (int j = 0; j < 2; j++) {
+                for (int i = 0; i < 2; i++) {
+                    int BitmapId = i + j * 2;
+                    if (aryImgRes[k][BitmapId] != SELECT_NONE) {
+                        // コードをリソースIDへ変換
+                        resId = c2r.getResID(aryImgRes[k][BitmapId]);
+                        // Bitmapをリソースから読み込む
+                        bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
+                        // サイズ補正（AccBall参照）
+                        bitmapWork2 = Bitmap.createScaledBitmap(bitmapWork1,
+                                viewWidthHalf, viewHeightHalf, false);
+                        // View上に描画
+                        canvas.drawBitmap(bitmapWork2,
+                                viewWidthHalf * i, viewHeightHalf * j, (Paint)null);
+                    }
+                }
+            }
+
+            // 該当CustomViewへ画像を設置
+            CustomView destImageView = mImagePieces.get(aryImgRes[k][4]);
+            destImageView.setImageBitmap(bitmapBase);
+            destImageView.setResID(k);
+            destImageView.setVisibility(View.VISIBLE);
+            mBitmapList.add(bitmapBase);
+        }
 
     }
 

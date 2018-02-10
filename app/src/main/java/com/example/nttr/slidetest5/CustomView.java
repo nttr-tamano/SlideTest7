@@ -15,20 +15,21 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
 
     // クラスのpublicな定数
     //https://www.sejuku.net/blog/20977
-    public static final int UNDEFINED_RESOURCE = 0;
-    private int mBackgroundColor = Color.CYAN;
+    //public static final int UNDEFINED_RESOURCE = 0;
+    //private int mBackgroundColor = Color.CYAN;
     //private Paint mPaint = new Paint();
 
     // View上に、最大4つの画像を貼り付け予定
-    private final int BITMAP_COUNT = 4;
-    private int[] mResources = new int[BITMAP_COUNT];
+//    private final int BITMAP_COUNT = 4;
+    //private int[] mResources = new int[BITMAP_COUNT];
     // 整数配列の初期値はnullではないがそのまま扱えない
     // https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q111032016
 
-    private Bitmap[] mBitmaps = new Bitmap[BITMAP_COUNT];
+//    private Bitmap[] mBitmaps = new Bitmap[BITMAP_COUNT];
 
-    private final int SELECT_NONE = -1;
-    private int mResID = SELECT_NONE;
+    // 画像のリソース情報関連
+    private final int SELECT_NONE = -1; // 未指定の値。配列の添え字となりえない数値であること
+    private int mResID = SELECT_NONE;   // 表示している画像のリソース配列の添え字
 
     // デフォルトコンストラクタ
     // http://www.atmarkit.co.jp/ait/articles/0912/17/news110_2.html
@@ -42,8 +43,8 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
         super(context);
 
         // https://donsyoku.com/zakki/java-initialization-arrays-fill.html
-        Arrays.fill(mResources,UNDEFINED_RESOURCE);
-        Arrays.fill(mBitmaps,null);
+//        Arrays.fill(mResources,UNDEFINED_RESOURCE);
+//        Arrays.fill(mBitmaps,null);
 
 //        // 画像を入れる(=true)か否か(=false)
 //        if (isImages) {
@@ -115,13 +116,13 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
 //
 //    }
 
-    // 画像のリソース情報の取得
-    public int[] getRes() {
-        return mResources;
-    }
+//    // 画像のリソース情報の取得
+//    public int[] getRes() {
+//        return mResources;
+//    }
 
-    // 画像のリソース情報の設定＋ビットマップ準備
-    public void setRes(int[] mResources) {
+//    // 画像のリソース情報の設定＋ビットマップ準備
+//    public void setRes(int[] mResources) {
 //        // 配列のコピー
 //        // https://developer.android.com/reference/java/util/Arrays.html#copyOf(int[], int)
 //        this.mResources = Arrays.copyOf(mResources,BITMAP_COUNT);
@@ -160,8 +161,8 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
 //            }
 //
 //        }
-
-    }
+//
+//    }
 
     public int getResID() {
         return mResID;
