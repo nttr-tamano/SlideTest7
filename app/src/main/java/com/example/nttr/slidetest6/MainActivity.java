@@ -1,4 +1,4 @@
-package com.example.nttr.slidetest5;
+package com.example.nttr.slidetest6;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -22,7 +22,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import java.util.ArrayList;
-import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
         //implements SurfaceHolder.Callback,Runnable { //implements View.OnTouchListener {
@@ -85,43 +84,7 @@ public class MainActivity extends AppCompatActivity {
     private final int PART_LR = 3; // 右下
 
     // コード値の組と、初期配置先CustomViewの添え字
-//    // 1個 // ステージ1用
-//    int aryImgRes[][] = {
-//            {SELECT_NONE, SELECT_NONE, SELECT_NONE,           3, 4},
-//            {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 7},
-//            {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
-//            {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
-//    };
-
-//    // 上下2個 // ステージ2用
-//    int aryImgRes[][] = {
-//            {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
-//            {SELECT_NONE, SELECT_NONE,           6, SELECT_NONE, 1},
-//            {SELECT_NONE,           5, SELECT_NONE,           3, 4},
-//            {          4, SELECT_NONE,           2, SELECT_NONE, 7},
-//            {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
-//            {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
-//    };
-
-//    // 左右2個 // ステージ3用
-//    int aryImgRes[][] = {
-//            {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
-//            {SELECT_NONE, SELECT_NONE,           6,           3, 1},
-//            {SELECT_NONE,           5, SELECT_NONE, SELECT_NONE, 4},
-//            {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 2},
-//            {          4,           1, SELECT_NONE, SELECT_NONE,13},
-//            {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 6},
-//    };
-
-    // 左右2個+2個 // ステージ4用
-    int aryImgRes[][] = {
-            {         12, SELECT_NONE, SELECT_NONE,           7, 0},
-            {          8,          13,           6,           3, 1},
-            {SELECT_NONE,           5, SELECT_NONE,          11, 4},
-            {SELECT_NONE,           9,           2, SELECT_NONE, 2},
-            {          4,           1,          10,          15,13},
-            {          0, SELECT_NONE,          14, SELECT_NONE, 6},
-    };
+    int aryImgRes[][];
 
     // コード値をリソースIDへ変換する定数配列っぽいクラス
     private CodeToResource c2r = new CodeToResource();
@@ -134,7 +97,13 @@ public class MainActivity extends AppCompatActivity {
     int mAnimeSrcIndex = SELECT_NONE;        // アニメーションの移動元のID
     int mAnimeDestIndex = SELECT_NONE;       // アニメーションの移動先のID
 
-    final int ANIME_DURATION = 200; //300;
+    int mAnimeSrcCenterX = 0;
+    int mAnimeSrcCenterY = 0;
+    int mAnimeDestCenterX = 0;
+    int mAnimeDestCenterY = 0;
+    boolean flagAnimeReady = false;
+
+    final int ANIME_DURATION = 100; //200; //300;
 
     // アニメーション時間決定用
     // ANIME_FRAME * ANIME_WAIT_MSEC / 1000 [sec] がアニメーション時間
@@ -249,6 +218,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    // onCreate直後の初回処理用
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
@@ -257,40 +227,8 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // 表示設定
-        // ビットマップ情報の定義（固定値版）
-//        int aryImgRes[][] = {
-//                {R.drawable.arrow_left,CustomView.UNDEFINED_RESOURCE,
-//                        CustomView.UNDEFINED_RESOURCE,R.drawable.arrow_right,0},
-//                {CustomView.UNDEFINED_RESOURCE,R.drawable.arrow_left,
-//                        R.drawable.arrow_right,CustomView.UNDEFINED_RESOURCE,10}
-//        };
-
-        // ピンク星
-//        int aryImgRes[][] = {
-//                {CustomView.UNDEFINED_RESOURCE, CustomView.UNDEFINED_RESOURCE,
-//                        CustomView.UNDEFINED_RESOURCE,R.drawable.pink_star_ul,4},
-//                {CustomView.UNDEFINED_RESOURCE, R.drawable.pink_star_ur,
-//                        CustomView.UNDEFINED_RESOURCE, CustomView.UNDEFINED_RESOURCE,7},
-//                {CustomView.UNDEFINED_RESOURCE, CustomView.UNDEFINED_RESOURCE,
-//                        R.drawable.pink_star_ll,CustomView.UNDEFINED_RESOURCE,8},
-//                {R.drawable.pink_star_lr, CustomView.UNDEFINED_RESOURCE,
-//                        CustomView.UNDEFINED_RESOURCE,CustomView.UNDEFINED_RESOURCE,9},
-//        };
-//        aryImgRes[][]
-
-
-        // 次のステージを開始
+        // 次のステージを開始(初回)
         loadNewStage();
-
-//        // 表示デモ用に左上(0)だけ表示
-//        mImagePieces.get(0).setVisibility(View.VISIBLE);
-////                // 画像を掲載
-////                // https://www.javadrive.jp/start/array/index5.html
-////                mImagePieces.get(0).setRes(imgRes);
-//
-//        // 通り抜け防止テストで、10も追加
-//        mImagePieces.get(10).setVisibility(View.VISIBLE);
 
         // 再実行しない
         flagSetBitmap = true;
@@ -300,6 +238,128 @@ public class MainActivity extends AppCompatActivity {
     // タッチイベントにジェスチャー受付を定義
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        float x = event.getX();
+        float y = event.getY();
+        String action = "";
+
+        switch(event.getAction() & MotionEvent.ACTION_MASK) {
+            case MotionEvent.ACTION_DOWN:
+                action = "Touch Down";
+                break;
+            case MotionEvent.ACTION_MOVE:
+                action = "Touch Move";
+                break;
+            case MotionEvent.ACTION_UP:
+
+                // アニメーション中でなければ何もしない
+                if (flagAnimeReady == false) {
+                    break;
+                }
+                //Log.d("tapup","mAnimeSrcIndex="+mAnimeSrcIndex+",mAnimeDestIndex="+mAnimeDestIndex);
+
+                // 移動先がない場合は何もしない（何もできない）
+                if (mAnimeDestIndex == SELECT_NONE) {
+                    flagAnimeReady = false;
+                    break;
+                }
+
+                final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
+                // 模様の成立チェック
+                int resID = destImageView.getResID();
+                // 連続アニメーション可能にしたため、うまくいかないときがあるのを回避
+                // 厳密にはテストできていない
+                if (resID == SELECT_NONE) {
+                    flagAnimeReady = false;
+                    break;
+                }
+
+                // 最低2箇所チェックする必要がある
+                boolean flagMatch1 = false;
+                boolean flagMatch2 = false;
+
+                // フリック方向に基づき、チェック対象を決定
+                switch (mAnimeDirection) {
+                    case DIRECTION_TOP:
+                        // 左上、右上
+                        flagMatch1 = checkMatch(resID,PART_UL);
+                        flagMatch2 = checkMatch(resID,PART_UR);
+
+                        // 消去
+                        if (flagMatch1) {
+                            vanishMatch(PART_UL);
+                        }
+                        if (flagMatch2) {
+                            vanishMatch(PART_UR);
+                        }
+                        break;
+                    case DIRECTION_LEFT:
+                        // 左上、左下
+                        flagMatch1 = checkMatch(resID,PART_UL);
+                        flagMatch2 = checkMatch(resID,PART_LL);
+
+                        // 消去
+                        if (flagMatch1) {
+                            vanishMatch(PART_UL);
+                        }
+                        if (flagMatch2) {
+                            vanishMatch(PART_LL);
+                        }
+
+                        break;
+                    case DIRECTION_RIGHT:
+                        // 右上、右下
+                        flagMatch1 = checkMatch(resID,PART_UR);
+                        flagMatch2 = checkMatch(resID,PART_LR);
+
+                        // 消去
+                        if (flagMatch1) {
+                            vanishMatch(PART_UR);
+                        }
+                        if (flagMatch2) {
+                            vanishMatch(PART_LR);
+                        }
+                        break;
+                    case DIRECTION_BOTTOM:
+                        // 左下、右下
+                        flagMatch1 = checkMatch(resID,PART_LL);
+                        flagMatch2 = checkMatch(resID,PART_LR);
+
+                        // 消去
+                        if (flagMatch1) {
+                            vanishMatch(PART_LL);
+                        }
+                        if (flagMatch2) {
+                            vanishMatch(PART_LR);
+                        }
+                        break;
+                }
+                Log.d("check","mAnimeDirection="+mAnimeDirection
+                        +",flagMatch1="+flagMatch1+",flagMatch2="+flagMatch2);
+
+                // 模様のマッチが成立したらステージクリア判定
+                if (flagMatch1 || flagMatch2) {
+                    boolean flagClear = checkStageClear();
+                    // ステージクリアしたら、次へボタンを表示
+                    if (flagClear) {
+                        mBtnNextStage.setVisibility(View.VISIBLE);
+                    }
+                }
+
+                flagAnimeReady = false;
+                // 他のメンバ変数のクリア
+                //mAnimeSrcIndex = SELECT_NONE;
+                //mAnimeDestIndex = SELECT_NONE;
+
+                action = "Touch Up";
+                Log.d("Touch", action + " x=" + x + ", y=" + y);
+                break;
+
+            case MotionEvent.ACTION_CANCEL:
+                action = "Touch Cancel";
+                break;
+        }
+        //Log.d("Touch", action + " x=" + x + ", y=" + y);
+        //return super.onTouchEvent(event);
         return mGestureDetector.onTouchEvent(event);
     }
 
@@ -308,74 +368,97 @@ public class MainActivity extends AppCompatActivity {
     private final GestureDetector.SimpleOnGestureListener mOnGestureListener
              = new GestureDetector.SimpleOnGestureListener() {
 
-        // フリックイベント
+        // タップ位置＝アニメーション開始位置のCustomViewのIDを記録
         @Override
-        public boolean onFling(MotionEvent event1, MotionEvent event2, float velocityX, float velocityY) {
-
-            final int SWIPE_MIN_DISTANCE = 50;          // 最小移動距離
-            final int SWIPE_THRESHOLD_VELOCITY = 200;   // 最小速度
-            final float SLOPE_RATE = 1.1f;              // 斜めと判定されないための比率
-
-            // フリック方向
-            int directionX = DIRECTION_NONE;
-            int directionY = DIRECTION_NONE;
-            int direction  = DIRECTION_NONE;
-
+        public boolean onDown(MotionEvent event) {
             int flungViewIndex = SELECT_NONE;
-
-            // onDrawを受け取る設定
-            // https://developer.android.com/reference/android/view/View.html#setWillNotDraw%28boolean%29
-            // ActivityのOnCreate()では早すぎて、ぬるぽ
-            mSurfaceView.setWillNotDraw(false);
-
             try {
-
                 // どのPieceのView上かチェック
-                flungViewIndex = getViewIndex(event1.getX(), event1.getY());
-//                if (SELECT_NONE < flungViewIndex && flungViewIndex < mImagePieces.size()) {
-//                    mPieceTag = flungViewIndex;
-//                } else {
-//                    return false;
-//                }
+                flungViewIndex = getViewIndex(event.getX(), event.getY());
                 // 有効な値でなければ処理しない
                 if (flungViewIndex <= SELECT_NONE || mImagePieces.size() <= flungViewIndex) {
-                    return false;
+                    return super.onDown(event);
                 }
 
                 //　非表示状態のCustomViewだったら処理しない
                 if (mImagePieces.get(flungViewIndex).getVisibility() != View.VISIBLE) {
-                    return false;
+                    return super.onDown(event);
                 }
+            } catch (Exception e) {
+            }
 
-                // 移動距離・スピードを出力
-                float distance_x = event2.getX() - event1.getX();
-                float distance_y = event1.getY() - event2.getY();
+            // このCustomViewの中心位置の座標を記録
+            CustomView cv = mImagePieces.get(flungViewIndex);
+            int[] lo = new int[2];
+            cv.getLocationInWindow(lo);
+            int cvLeft = lo[0];
+            int cvTop = lo[1];
+            mAnimeSrcCenterX = cvLeft + cv.getWidth() / 2;
+            mAnimeSrcCenterY = cvTop + cv.getHeight() / 2;
+
+            mAnimeSrcIndex = flungViewIndex;
+            flagAnimeReady = true;
+            return super.onDown(event);
+        }
+
+        // https://qiita.com/shinido/items/65399846a5e9eba1aa5e
+        @Override
+        public boolean onScroll(MotionEvent event1, MotionEvent event2, float distanceX, float distanceY) {
+            final int SWIPE_MIN_DISTANCE = 50;          // 最小移動距離
+//            final int SWIPE_THRESHOLD_VELOCITY = 200;   // 最小速度
+            final float SLOPE_RATE = 1.1f;              // 斜めと判定されないための比率
+
+            // 移動方向
+            int directionX = DIRECTION_NONE;
+            int directionY = DIRECTION_NONE;
+            int direction  = DIRECTION_NONE;
+
+            //Log.d("onScroll","from:("+event1.getX()+","+event1.getY()+
+            //        ") to:("+event2.getX()+","+event2.getY()+")");
+            // イベントが頻繁に実行されるため、ログは最小限にした方が良い
+
+            // アニメーション管理中以外は何もしない
+            if (flagAnimeReady == false) {
+                return super.onScroll(event1, event2, distanceX, distanceY);
+            }
+            // アニメーション中は何もしない
+            if (mAnimator.isRunning()) {
+                return super.onScroll(event1, event2, distanceX, distanceY);
+            }
+
+            // 移動距離・スピードを出力
+//            float distance_y = event1.getY() - event2.getY();
+//            float distance_x = event2.getX() - event1.getX();
+
+            try {
+
+                // 前回アニメ終了位置(最初の開始位置含む)からの移動距離
+                float distance_x = event2.getX() - mAnimeSrcCenterX;
+                float distance_y = mAnimeSrcCenterY - event2.getY();
                 String strX = null;
                 String strY = null;
 
                 // X・Y軸それぞれの方向性の有無を確認
 
-                // X軸の移動速度が指定値より大きい
                 // 開始位置から終了位置の移動距離がSWIPE_MIN_DISTANCEより大きい
-                if (distance_x < -SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+                if (distance_x < -SWIPE_MIN_DISTANCE) {
                     strX = "左";
                     directionX = DIRECTION_LEFT;
 
                 // 終了位置から開始位置の移動距離がSWIPE_MIN_DISTANCEより大きい
-                } else if (distance_x > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+                } else if (distance_x > SWIPE_MIN_DISTANCE) {
                     strX = "右";
                     directionX = DIRECTION_RIGHT;
 
                 }
 
-                // Y軸の移動速度が指定値より大きい
                 // 終了位置から開始位置の移動距離がSWIPE_MIN_DISTANCEより大きい
-                if (distance_y > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
+                if (distance_y > SWIPE_MIN_DISTANCE) {
                     strY = "上";
                     directionY = DIRECTION_TOP;
 
-                // 開始位置から終了位置の移動距離がSWIPE_MIN_DISTANCEより大きい
-                } else if (distance_y < -SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
+                    // 開始位置から終了位置の移動距離がSWIPE_MIN_DISTANCEより大きい
+                } else if (distance_y < -SWIPE_MIN_DISTANCE) {
                     strY = "下";
                     directionY = DIRECTION_BOTTOM;
 
@@ -386,163 +469,150 @@ public class MainActivity extends AppCompatActivity {
                 // X軸は、右が大きい。Y軸は下が大きい。
                 if (Math.abs(distance_x) > Math.abs(distance_y) * SLOPE_RATE) {
                     // X方向が大きい
-                    Log.d("onFling", flungViewIndex + "が" + strX + "方向");
+                    //Log.d("onScroll", "CustomView["+mAnimeSrcIndex + "]が" + strX + "方向");
                     direction = directionX;
 
                 } else if (Math.abs(distance_x) * SLOPE_RATE < Math.abs(distance_y)) {
                     // Y方向が大きい
-                    Log.d("onFling",flungViewIndex + "が" + strY + "方向");
+                    //Log.d("onScroll","CustomView["+mAnimeSrcIndex + "]が" + strY + "方向");
                     direction = directionY;
 
                 } else {
                     // ほぼ等しいは無視扱い
-                    Log.d("onFling", "ほぼ、斜め" + strX + strY + "方向");
+                    //Log.d("onScroll", "CustomView["+mAnimeSrcIndex + "]が、ほぼ斜め" + strX + strY + "方向");
                     direction = DIRECTION_NONE;
-
                 }
 
             } catch (Exception e) {
             }
+            if (direction == DIRECTION_NONE) {
+                // まだアニメーションしない
+                return super.onScroll(event1, event2, distanceX, distanceY);
+            }
 
             // 移動先のIDの取得を試みる
-            int destViewIndex = getDestViewIndex(flungViewIndex, direction, true);
+            int destViewIndex = getDestViewIndex(mAnimeSrcIndex, direction, true);
             // 移動不可の場合、SELECT_NONEが返るのでアニメーションしない
             if (destViewIndex == SELECT_NONE) {
+//                flagAnimeReady = false;
+                return super.onScroll(event1, event2, distanceX, distanceY);
+            }
+
+            // このCustomViewの中心位置の座標を記録
+            CustomView cv = mImagePieces.get(destViewIndex);
+            int[] lo = new int[2];
+            cv.getLocationInWindow(lo);
+            int cvLeft = lo[0];
+            int cvTop = lo[1];
+            // direction方向へ十分移動したかの境界(180211: 3分の1とする)
+            float BorderRaito = 0.25F;
+            int AnimeDestBorderLeft = cvLeft + (int)(cv.getWidth() * BorderRaito);
+            int AnimeDestBorderTop = cvTop + (int)(cv.getHeight() * BorderRaito);
+            int AnimeDestBorderRight = cvLeft + (int)(cv.getWidth() * (1.0F - BorderRaito));
+            int AnimeDestBorderBottom = cvTop + (int)(cv.getHeight() * (1.0F - BorderRaito));
+
+            //Log.d("onScroll","Current("+event2.getX()+","+event2.getY()+")"+
+            //    "AnimeDestBorder L,T,R,B=("+AnimeDestBorderLeft+","+AnimeDestBorderTop+
+            //        ","+AnimeDestBorderRight+","+AnimeDestBorderBottom+")");
+
+            // 通り過ぎていれば移動したとみなす
+            boolean flagMoveValid = false;
+            switch(direction) {
+                case DIRECTION_TOP:
+                    if (event2.getY() < AnimeDestBorderBottom) {
+                        flagMoveValid = true;
+                    }
+                    break;
+                case DIRECTION_LEFT:
+                    if (event2.getX() < AnimeDestBorderRight) {
+                        flagMoveValid = true;
+                    }
+                    break;
+                case DIRECTION_RIGHT:
+                    if (event2.getX() > AnimeDestBorderLeft) {
+                        flagMoveValid = true;
+                    }
+                    break;
+                case DIRECTION_BOTTOM:
+                    if (event2.getY() > AnimeDestBorderTop) {
+                        flagMoveValid = true;
+                    }
+                    break;
+            }
+            if (!flagMoveValid) {
+                return super.onScroll(event1, event2, distanceX, distanceY);
+            }
+            // 移動先のCustomViewの添え字、中心座標
+            mAnimeDestIndex = destViewIndex;
+            mAnimeDestCenterX = cvLeft + cv.getWidth() / 2;
+            mAnimeDestCenterY = cvTop + cv.getHeight() / 2;
+
+            //Log.d("onScroll", "src: "+mAnimeSrcIndex+" dest: "+mAnimeDestIndex);
+
+            // アニメーション中は次のアニメーションは禁止
+            if (mAnimator.isRunning()) {
+                return super.onScroll(event1, event2, distanceX, distanceY);
+            }
+
+            // 移動可能なのでアニメーション準備
+            mAnimeDirection = direction;
+//            mAnimeSrcIndex = flungViewIndex;
+//            mAnimeDestIndex = destViewIndex;
+
+            // アニメーション時間を設定
+            mAnimator.setDuration(ANIME_DURATION);
+
+            // 移動元の画像の取得
+            CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
+            mBitmapID = srcImageView.getResID();
+            if (mBitmapID == SELECT_NONE) {
                 return false;
             }
+            mBitmap = mBitmapList.get(mBitmapID);
 
-            //Log.d("onFling", "src: "+flungViewIndex+" dest: "+destViewIndex);
+            // 描画開始位置
+            int srcX = srcImageView.getLeft();
+            // Y座標は親View(横長LinearLayout)から取得
+            // http://ichitcltk.hustle.ne.jp/gudon2/index.php?pageType=file&id=Android059_ViewTree
+            int srcY = ((View) srcImageView.getParent()).getTop();
+            // Log.d("location", "imageView X=" + srcX + ",Y=" + srcY);
 
-            if (!mAnimator.isRunning()) {
-//            if (mAnimator == null || !mAnimator.isRunning()) {
-                // 移動可能なのでアニメーション準備
-                mAnimeDirection = direction;
-                mAnimeSrcIndex = flungViewIndex;
-                mAnimeDestIndex = destViewIndex;
+            // Customviewの各パネルのマージンの分だけ表示位置を補正
+            // 縦が不要なのは、余白なしの上位のLinearLayoutの座標を使用しているため
+            //srcX += PIECE_MARGIN;                   // マージン補正←不要
+            srcY += PIECE_MARGIN;                   // マージン補正
 
-//                // 移動先に画像情報をセット
-//                //mImagePieces.get(mAnimeDestIndex).setRes(mImagePieces.get(mAnimeSrcIndex).getRes());
-//
-//                // スレッドの内容の実行許可
-//                isAttached = true;
-//
-//                // ホサカさんが、ThreadをValueAnimatorへ置き換えた
-//                //mAnimator = ValueAnimator.ofFloat(0f,1f);
-//                mAnimator = mSurfaceView.getmAnimator();
+            // 移動先座標。switch caseで制御
+            int destX = 0;
+            int destY = 0;
 
-                // アニメーション時間を設定
-                mAnimator.setDuration(ANIME_DURATION);
+            // X方向・Y方向の移動先
+            switch (mAnimeDirection) {
+                case DIRECTION_TOP:
+                    destX = srcX;
+                    destY = srcY - ((View) srcImageView.getParent()).getHeight();
+                    break;
 
-                // 移動元の画像の取得
-                CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
-//                srcImageView.destroyDrawingCache(); // キャッシュのクリア
-//                Bitmap bitmap_work = srcImageView.getDrawingCache();  // 作り直されたキャッシュを取得する
+                case DIRECTION_LEFT:
+                    destX = srcX - srcImageView.getWidth();
+                    destX -= PIECE_MARGIN * 2;      // マージン補正
+                    destY = srcY;
+                    break;
 
-                mBitmapID = srcImageView.getResID();
-                if (mBitmapID == SELECT_NONE) {
-                    return false;
-                }
-                mBitmap = mBitmapList.get(mBitmapID);
+                case DIRECTION_RIGHT:
+                    destX = srcX + srcImageView.getWidth();
+                    destX += PIECE_MARGIN * 2;      // マージン補正
+                    destY = srcY;
+                    break;
 
-//                // ImageViewのサイズに合わせる
-//                mBitmap = Bitmap.createScaledBitmap(bitmap_work, srcImageView.getMeasuredWidth(),
-//                        srcImageView.getMeasuredHeight(), false);
-
-                // 描画開始位置
-                int srcX = srcImageView.getLeft();
-                // Y座標は親View(横長LinearLayout)から取得
-                // http://ichitcltk.hustle.ne.jp/gudon2/index.php?pageType=file&id=Android059_ViewTree
-                int srcY = ((View) srcImageView.getParent()).getTop();
-                // Log.d("location", "imageView X=" + srcX + ",Y=" + srcY);
-
-                // Customviewの各パネルのマージンの分だけ表示位置を補正
-                // 縦が不要なのは、余白なしの上位のLinearLayoutの座標を使用しているため
-                //srcX += PIECE_MARGIN;                   // マージン補正←不要
-                srcY += PIECE_MARGIN;                   // マージン補正
-
-                // 移動先座標。switch caseで制御
-                int destX = 0;
-                int destY = 0;
-//                int deltaX = 0;
-//                int deltaY = 0;
-
-                // X方向・Y方向の移動先
-                switch (mAnimeDirection) {
-                    case DIRECTION_TOP:
-                        destX = srcX;
-                        destY = srcY - ((View) srcImageView.getParent()).getHeight();
-                        //destY -= PIECE_MARGIN * 0;      // マージン補正
-//                        deltaX = 0;
-//                        deltaY = -((View) srcImageView.getParent()).getHeight();
-                        break;
-
-                    case DIRECTION_LEFT:
-                        destX = srcX - srcImageView.getWidth();
-                        destX -= PIECE_MARGIN * 2;      // マージン補正
-                        destY = srcY;
-//                        deltaX = -srcImageView.getWidth();
-//                        deltaY = 0;
-                        break;
-
-                    case DIRECTION_RIGHT:
-                        destX = srcX + srcImageView.getWidth();
-                        destX += PIECE_MARGIN * 2;      // マージン補正
-                        destY = srcY;
-//                        deltaX = srcImageView.getWidth();
-//                        deltaY = 0;
-                        break;
-
-                    case DIRECTION_BOTTOM:
-                        destX = srcX;
-                        destY = srcY + ((View) srcImageView.getParent()).getHeight();
-                        //destY += PIECE_MARGIN * 0;      // マージン補正
-//                        deltaX = 0;
-//                        deltaY = ((View) srcImageView.getParent()).getHeight();
-                        break;
-                }
-
-                // アニメーション情報を設定
-                mSurfaceView.setAnimationInfo(mBitmap,srcX,srcY,destX,destY);
-
-//                mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-//                    @Override
-//                    public void onAnimationUpdate(ValueAnimator animation) {
-//                        //Log.d(MainActivity.class.getSimpleName(), "onAnimationUpdate");
-//                        // Log.d()が効かない
-//                        while(isAttached) {
-//
-//
-//
-////                            // 移動先ImageViewの表示
-////                            final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
-////                            destImageView.post(new Runnable() {
-////                                @Override
-////                                public void run() {
-////                                    destImageView.setVisibility(View.VISIBLE);
-////                                }
-////                            });
-////
-////                            // http://boco.hp3200.com/game-devs/view/3.html
-////                            // アニメーション終了後ウェイト処理
-////                            try {
-////                                Thread.sleep(ANIME_WAIT_MSEC);
-////                            } catch (InterruptedException e) {
-////                            }
-////
-////                            // SurfaceViewのクリア
-////                            Canvas canvas = mHolder.lockCanvas();
-////                            // キャンバス（背景）を透過
-////                            // https://qiita.com/androhi/items/a1ed36d3743d5b8cb771
-////                            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-//
-////                            mHolder.unlockCanvasAndPost(canvas);
-//
-//                            // スレッド終了
-//                            isAttached = false;
-//                        }
-//                    }
-//                });
+                case DIRECTION_BOTTOM:
+                    destX = srcX;
+                    destY = srcY + ((View) srcImageView.getParent()).getHeight();
+                    break;
             }
+
+            // アニメーション情報を設定
+            mSurfaceView.setAnimationInfo(mBitmap,srcX,srcY,destX,destY);
 
             // アニメーション開始前・終了後の処理をコールバックに追加
             mAnimator.addListener(new AnimatorListenerAdapter() {
@@ -556,8 +626,6 @@ public class MainActivity extends AppCompatActivity {
 
                     // 移動先ImageViewに画像を書き込む
                     final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
-                    //destImageView.setImageBitmap(mBitmap);
-//                    destImageView.setRes(srcImageView.getRes());
                     destImageView.setImageBitmap(mBitmap);
                     destImageView.setResID(mBitmapID);
 
@@ -565,7 +633,6 @@ public class MainActivity extends AppCompatActivity {
                     // http://akisute3.hatenablog.com/entry/20120204/1328346655
                     //Log.d("onAnimeStart","src="+mAnimeSrcIndex+",Res="+Arrays.toString(srcImageView.getRes()));
                     //Log.d("onAnimeStart","dest"+mAnimeDestIndex+",Res="+Arrays.toString(destImageView.getRes()));
-
                 }
 
                 @Override
@@ -577,196 +644,19 @@ public class MainActivity extends AppCompatActivity {
                     if (destImageView.getVisibility() == View.VISIBLE) {
                         return;
                     }
-                    //destImageView.post(new Runnable() {
-                    //    @Override
-                    //    public void run() {
-                            destImageView.setVisibility(View.VISIBLE);
-                    //    }
-                    //});
-
-                    // 模様の成立チェック
-                    int resID = destImageView.getResID();
-                    // 最低2箇所チェックする必要がある
-                    boolean flagMatch1 = false;
-                    boolean flagMatch2 = false;
-
-                    // フリック方向に基づき、チェック対象を決定
-                    switch (mAnimeDirection) {
-                        case DIRECTION_TOP:
-                            // 左上、右上
-                            flagMatch1 = checkMatch(resID,PART_UL);
-                            flagMatch2 = checkMatch(resID,PART_UR);
-
-                            // 消去
-                            if (flagMatch1) {
-                                vanishMatch(PART_UL);
-                            }
-                            if (flagMatch2) {
-                                vanishMatch(PART_UR);
-                            }
-                            break;
-                        case DIRECTION_LEFT:
-                            // 左上、左下
-                            flagMatch1 = checkMatch(resID,PART_UL);
-                            flagMatch2 = checkMatch(resID,PART_LL);
-
-                            // 消去
-                            if (flagMatch1) {
-                                vanishMatch(PART_UL);
-                            }
-                            if (flagMatch2) {
-                                vanishMatch(PART_LL);
-                            }
-
-                            break;
-                        case DIRECTION_RIGHT:
-                            // 右上、右下
-                            flagMatch1 = checkMatch(resID,PART_UR);
-                            flagMatch2 = checkMatch(resID,PART_LR);
-
-                            // 消去
-                            if (flagMatch1) {
-                                vanishMatch(PART_UR);
-                            }
-                            if (flagMatch2) {
-                                vanishMatch(PART_LR);
-                            }
-                            break;
-                        case DIRECTION_BOTTOM:
-                            // 左下、右下
-                            flagMatch1 = checkMatch(resID,PART_LL);
-                            flagMatch2 = checkMatch(resID,PART_LR);
-
-                            // 消去
-                            if (flagMatch1) {
-                                vanishMatch(PART_LL);
-                            }
-                            if (flagMatch2) {
-                                vanishMatch(PART_LR);
-                            }
-                            break;
-                    }
-                    Log.d("check","mAnimeDirection="+mAnimeDirection
-                            +",flagMatch1="+flagMatch1+",flagMatch2="+flagMatch2);
-
-                    // 模様のマッチが成立したらステージクリア判定
-                    if (flagMatch1 || flagMatch2) {
-                        boolean flagClear = checkStageClear();
-                        // ステージクリアしたら、次へボタンを表示
-                        if (flagClear) {
-                            mBtnNextStage.setVisibility(View.VISIBLE);
-                        }
-                    }
-
-//                    if (mAnimeDirection == DIRECTION_TOP || mAnimeDirection == DIRECTION_LEFT) {
-//                        //TODO
-//                    }
-//
-//                    // 右上を基準に、その右・上・右上をチェック
-//                    //TODO
-//
-//                    Log.d("check","mAnimeDirection="+mAnimeDirection);
-//
-//                    // 左下を基準に、その左・下・左下をチェック
-//                    if (mAnimeDirection == DIRECTION_BOTTOM || mAnimeDirection == DIRECTION_LEFT) {
-//                    }
-
-//                    while (mAnimeDirection == DIRECTION_BOTTOM || mAnimeDirection == DIRECTION_LEFT) {
-//
-//                        // 正否判定用
-//                        boolean flagMatch = true; // マッチしている(可能性がある)=true、ない=false
-//
-//                        // 基準位置のコードを取得
-//                        int resID = destImageView.getResID();
-//                        int code = aryImgRes[resID][PART_LL];
-//                        int codeGroup = code / 4; // 当面は4つマッチとする
-//
-//                        Log.d("check","resID="+resID+",code="+code);
-//
-//                        // SELECT_NONEでなければ、周辺のコードを取得
-//                        if (code != SELECT_NONE) {
-//
-//                            // チェック対象となる位置の情報
-//                            // 左の、右下
-//                            // 下の、左上
-//                            // 左下の、右上
-//                            int directions[] = {DIRECTION_LEFT, DIRECTION_BOTTOM, DIRECTION_BOTTOM_LEFT};
-//                            int positions[] = {PART_LR,PART_UL,PART_UR};
-//
-//                            for (int i = 0; i < directions.length; i++) {
-//                                int targetCode = getAroundCode(mAnimeDestIndex, directions[i], positions[i]);
-//                                Log.d("check","targetCode="+targetCode);
-//                                // マッチしないまたはSELECT_NONEあれば判定終了
-//                                if ( targetCode == SELECT_NONE || (targetCode / 4) != codeGroup) {
-//                                    flagMatch = false;
-//                                    break;
-//                                }
-//                            }
-//
-//                        } else {
-//                            flagMatch = false;
-//                        }
-//                        // マッチしていないことが確定していたらループを中断
-//                        if (flagMatch == false) {
-//                            break;
-//                        }
-//
-//                        Log.d("check","4 pieces matched at "+mAnimeDestIndex+" !");
-//
-//                        // 画像を消す処理
-//
-//
-//                        // ループは1回で終了
-//                        break;
-//                    }
-
-                    // 右下を基準に、その右・下・右下をチェック
-                    //TODO
-
+                    destImageView.setVisibility(View.VISIBLE);
                     super.onAnimationEnd(animation);
                 }
             });
             mAnimator.start();
 
-            // 移動先ImageViewの表示
-//            //final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
-//            destImageView.post(new Runnable() {
-//                @Override
-//                public void run() {
-//                    destImageView.setVisibility(View.VISIBLE);
-//                }
-//            });
+            // 移動先が次の移動元になる
+            //Log.d("onScroll","Dest["+mAnimeDestIndex+"] => Src["+mAnimeSrcIndex+"]");
+            mAnimeSrcIndex = mAnimeDestIndex;
+            mAnimeSrcCenterX = mAnimeDestCenterX;
+            mAnimeSrcCenterY = mAnimeDestCenterY;
 
-            /*
-            // スレッド排他制御。起動していなければスレッドスタート
-            if (mThread == null || mThread.isAlive() == false) {
-
-                // 移動可能なのでアニメーション準備
-                mAnimeDirection = direction;
-                mAnimeSrcIndex = flungViewIndex;
-                mAnimeDestIndex = destViewIndex;
-
-                // 移動先に画像情報をセット
-                mImagePieces.get(mAnimeDestIndex).setRes(mImagePieces.get(mAnimeSrcIndex).getRes());
-
-                // スレッドの内容の実行許可
-                isAttached = true;
-
-
-                // 参考:スレッド生成をOnClick内から呼ぶときは、MainActivity必須か
-                mThread = new Thread(MainActivity.this);
-                // スレッド開始
-                // 1つのスレッドは1回しかstart()できない(java.lang.IllegalThreadStateException: Thread already started)
-                // http://blog.codebook-10000.com/entry/20140530/1401450268
-                mThread.start();
-            }*/
-            return false;
-        }
-
-        @Override
-        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            Log.d("onScroll","from:("+e1.getX()+","+e1.getY()+") to:("+e2.getX()+","+e2.getY()+")");
-            return super.onScroll(e1, e2, distanceX, distanceY);
+            return super.onScroll(event1, event2, distanceX, distanceY);
         }
     };
 
@@ -1144,7 +1034,7 @@ public class MainActivity extends AppCompatActivity {
             // 引数の座標がこのView内であるか判定
             if (ivLeft < flingX && flingX < ivRight
                     && ivTop < flingY && flingY < ivBottom ) {
-                Log.d("onFling", "In ImageView-" + i);
+                Log.d("onScroll", "In ImageView-" + i);
                 // Viewが見つかったのでループ中断
                 index = i;
                 break;

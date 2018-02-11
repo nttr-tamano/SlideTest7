@@ -1,4 +1,4 @@
-package com.example.nttr.slidetest5;
+package com.example.nttr.slidetest6;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

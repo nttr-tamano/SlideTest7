@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.nttr.slidetest5.MainActivity">
+    tools:context="com.example.nttr.slidetest6.MainActivity">
 
     <LinearLayout
         android:id="@+id/llSlideArea"
@@ -23,7 +23,7 @@
 
     </LinearLayout>
 
-    <com.example.nttr.slidetest5.TranslationSurfaceView
+    <com.example.nttr.slidetest6.TranslationSurfaceView
         android:id="@+id/surfaceView"
         android:layout_width="319dp"
         android:layout_height="319dp"

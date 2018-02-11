@@ -1,10 +1,6 @@
-package com.example.nttr.slidetest5;
+package com.example.nttr.slidetest6;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.Color;
-
-import java.util.Arrays;
 
 /**
  * Created by tamano on 2018/01/26.
