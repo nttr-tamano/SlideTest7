@@ -1180,12 +1180,13 @@ public class MainActivity extends AppCompatActivity {
 
         // ステージ番号をインクリメント
         mStageNumber++;
+        // エンドレス
         if (mStageNumber >= 8) {
-            mStageNumber = 1;
+            mStageNumber = 7;
         }
 
-        // test
-        mStageNumber = 7;
+        //// test
+        //mStageNumber = 7;
 
         // http://blog.goo.ne.jp/xypenguin/e/e1cfcc0b1a8c3acdbe023bbef8944dac
         // コード値の組と、初期配置先CustomViewの添え字を更新
