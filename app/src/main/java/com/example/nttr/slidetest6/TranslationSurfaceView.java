@@ -16,23 +16,23 @@ import android.view.SurfaceView;
 /**
  * Created by nttr on 2018/01/31.
  * http://ichitcltk.hustle.ne.jp/gudon2/index.php?pageType=file&id=Android035_Graphics2_SurfaceView
+ * ValueAnimator、コールバック、アニメーション情報を追加したカスタムSurfaceView。activity_main.xmlにも使用
  */
 
 public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
 
+    // アニメーションの座標情報
     private int mSrcX = 0;
     private int mSrcY = 0;
-    private int mDestX = 0;
-    private int mDestY = 0;
     private int mDeltaX = 0;
     private int mDeltaY = 0;
 
-    private ValueAnimator mAnimator;
-    private SurfaceHolder mHolder;
-
+    // アニメーションで描画する画像
     private Bitmap mBitmap;
 
-    private boolean isAttached = true;  //　不要になるのが理想
+    // 主なメンバ
+    private ValueAnimator mAnimator;
+    private SurfaceHolder mHolder;
 
     // コンストラクタ
     // activity_main.xml に配置利用を想定
@@ -62,7 +62,7 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
         //// フォーカス可
         //setFocusable(true);
 
-        // 背景を消す？
+        // 背景を透過させる
         // https://groups.google.com/forum/#!topic/android-group-japan/fQ10g8EgxNk
         //setAlpha(1.0F);
         setAlpha(0.99F); //180204: 要確認。透過を1にすると、背景が真っ黒になる
@@ -77,7 +77,8 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
         mAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
-                invalidate();
+                invalidate(); // onDraw()が呼ばれる
+                // canvas管理の必要な独自関数と他のタイミングでも呼ばれるonDrawとどっちが良いか不明
                 //Log.d("onAnimateUpdate","invalidate()");
             }
         });
@@ -87,6 +88,7 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
     protected void onDraw(Canvas canvas) {
         //super.onDraw(canvas);
 
+        // アニメーション中でなければ実行しない
         if ((mAnimator == null) || (!mAnimator.isRunning())) {
             return;
         }
@@ -98,21 +100,13 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
         int drawX = (int)(mSrcX + animeVal * mDeltaX);
         int drawY = (int)(mSrcY + animeVal * mDeltaY);
 
-        // 行き過ぎの補正（しなくていい？）
-
         // キャンバス（背景）を透過
         // https://qiita.com/androhi/items/a1ed36d3743d5b8cb771
         canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
         // 画像を描画
-        Paint p = new Paint();
         if (mBitmap != null) {
-            canvas.drawBitmap(mBitmap, drawX, drawY, p);
+            canvas.drawBitmap(mBitmap, drawX, drawY, null );
         }
-
-        // 描画終了
-        //mHolder.unlockCanvasAndPost(canvas);
-
-        //Log.d("onDraw","animeVal="+animeVal);
     }
 
     // SurfaceView生成時は、透過させる
@@ -129,21 +123,20 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
         mHolder.unlockCanvasAndPost(canvas);
     }
 
+    // SurfaceView変更時
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        //initialize();
+        //何もしない
     }
 
     // SurfaceView終了時
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        //isAttached = false;
-        //mAnimator = null;
-        // mThread = null; //スレッドを終了
+        //何もしない
     }
 
-    // ValueAnimatorを返す。.start()を呼べばメール開始
-    // 次のsetとまとめて行った方が良い？
+    // ValueAnimatorを返す。.start()を呼べばアニメーション開始
+    // 開始前に、次のsetAnimationInfoを行う必要がある
     public ValueAnimator getmAnimator() {
         return mAnimator;
     }
@@ -153,14 +146,11 @@ public class TranslationSurfaceView extends SurfaceView implements SurfaceHolder
         this.mBitmap = mBitmap;
         this.mSrcX = mSrcX;
         this.mSrcY = mSrcY;
-        this.mDestX = mDestX;
-        this.mDestY = mDestY;
 
         // 移動距離も計算
         this.mDeltaX = mDestX - mSrcX;
         this.mDeltaY = mDestY - mSrcY;
-        Log.d("setAnimationInfo","mSrcX="+mSrcX+",mSrcY="+mSrcY+",mDeltaX="+mDeltaX+",mDeltaY="+mDeltaY);
-
+        //Log.d("setAnimationInfo","mSrcX="+mSrcX+",mSrcY="+mSrcY+",mDeltaX="+mDeltaX+",mDeltaY="+mDeltaY);
     }
 
 

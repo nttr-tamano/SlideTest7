@@ -22,6 +22,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
         //implements SurfaceHolder.Callback,Runnable { //implements View.OnTouchListener {
@@ -1178,9 +1180,12 @@ public class MainActivity extends AppCompatActivity {
 
         // ステージ番号をインクリメント
         mStageNumber++;
-        if (mStageNumber >= 5) {
+        if (mStageNumber >= 8) {
             mStageNumber = 1;
         }
+
+        // test
+        mStageNumber = 7;
 
         // http://blog.goo.ne.jp/xypenguin/e/e1cfcc0b1a8c3acdbe023bbef8944dac
         // コード値の組と、初期配置先CustomViewの添え字を更新
@@ -1229,6 +1234,41 @@ public class MainActivity extends AppCompatActivity {
                         {          4,           1,          10,          15,13},
                         {          0, SELECT_NONE,          14, SELECT_NONE, 6},
                 };
+                break;
+
+            case 5:
+                // 7個 // ステージ5用
+                aryImgRes = new int[][]{
+                        {         12,          17,          26,           7, 0},
+                        {          8,          13,           6,           3, 1},
+                        {         16,           5,          22,          11, 4},
+                        {         24,           9,           2,          23, 2},
+                        {          4,           1,          10,          15,13},
+                        {          0,          21,          18,          27, 6},
+                        {         20,          25,          14,          19, 8},
+                };
+                break;
+
+            case 6:
+                // 同じ模様が複数
+                aryImgRes = new int[][]{
+                        {          0,           1,           2,           3, 4},
+                        {          0,           1,           2,           3, 7},
+                        {          0,           1,           2,           3, 8},
+                        {          0,           1,           2,           3, 9},
+                };
+                break;
+
+            case 7:
+                // ランダム 6パネル,4模様　//　ステージ7用
+                //createRandomStage(6,4);
+
+                // 乱数(1～Nまで)
+                // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
+                Random r = new Random();
+                int panelNumber = r.nextInt(mPieceX * mPieceY - 2) + 1;
+                int patternNumber = r.nextInt(7) + 1;
+                createRandomStage(panelNumber, patternNumber);
                 break;
         }
 
@@ -1285,6 +1325,64 @@ public class MainActivity extends AppCompatActivity {
             destImageView.setVisibility(View.VISIBLE);
             mBitmapList.add(bitmapBase);
         }
+
+    }
+
+    private void createRandomStage(int panelNumber, int patternNumber) {
+        //int panelNumber = 6;
+        //int patternNumber = 4;
+        final int partNumber = 4; // 固定
+        // 値の補正
+        // パネルは、partNumber(4)以上、全マス数-1以下
+        if (panelNumber < partNumber) {
+            panelNumber = partNumber;
+        } else if (panelNumber >= mPieceX * mPieceY) {
+            panelNumber = mPieceX * mPieceY - 1;
+        }
+        // 模様は、1以上、patternNumber以下(patternNumberなら全て埋まる)
+        if (patternNumber < 1) {
+            patternNumber = 1;
+        } else if (patternNumber > panelNumber) {
+            patternNumber = panelNumber;
+        }
+
+        aryImgRes = new int[panelNumber][(partNumber+1)];
+        // 全要素を初期化
+        for (int[] imgRes: aryImgRes) {
+            Arrays.fill(imgRes, SELECT_NONE);
+        }
+
+        // パネルID
+        int[] panels = c2r.getRandomPermutations(mPieceX * mPieceY - 1, panelNumber);
+        int[] parts  = c2r.getRandomPermutations(partNumber, partNumber);
+
+        Log.d("random","pieces[]="+Arrays.toString(panels));
+        Log.d("random","pieces[]="+Arrays.toString(parts));
+
+        // 各模様のIDをランダム値にして該当位置の配列要素へ代入
+        // 部位毎に処理
+        ArrayList<Integer> patterns = c2r.getRandomPermutationsPadding(panelNumber, patternNumber);
+        for (int j = 0; j < partNumber; j++) {
+            Log.d("random",j+" col pattern="+Arrays.toString(patterns.toArray()));
+            for (int i = 0; i < panelNumber; i++) {
+                int pattern = patterns.get(i);
+                if (pattern != SELECT_NONE) {
+                    aryImgRes[i][parts[j]] = pattern * partNumber + parts[j];
+                }
+            }
+            // リストの先頭の要素を末尾へ(1ずらす)→重複
+            int pattern = patterns.get(0);  // 先頭の要素を取得
+            patterns.remove(0);        // 先頭の要素を削除
+            patterns.add(pattern);          // 先頭の要素を末尾へ追加
+        }
+        int j = partNumber;
+        for (int i = 0; i < panelNumber; i++) {
+            aryImgRes[i][j] = panels[i];
+        }
+
+        // debug 2次元配列の出力
+        // https://teratail.com/questions/533
+        Log.d("random",Arrays.deepToString(aryImgRes));
 
     }
 
