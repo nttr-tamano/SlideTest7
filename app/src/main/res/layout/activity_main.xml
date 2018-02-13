@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.nttr.slidetest5.MainActivity">
+    tools:context="com.example.nttr.slidetest6.MainActivity">
 
     <LinearLayout
         android:id="@+id/llSlideArea"
@@ -23,7 +23,7 @@
 
     </LinearLayout>
 
-    <com.example.nttr.slidetest5.TranslationSurfaceView
+    <com.example.nttr.slidetest6.TranslationSurfaceView
         android:id="@+id/surfaceView"
         android:layout_width="319dp"
         android:layout_height="319dp"
@@ -36,20 +36,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
-        android:id="@+id/imageDummy"
-        android:layout_width="0dp"
-        android:layout_height="47dp"
-        android:layout_marginBottom="46dp"
-        android:layout_marginEnd="64dp"
-        android:layout_marginStart="64dp"
-        android:layout_marginTop="24dp"
-        android:scaleType="fitXY"
-        app:layout_constraintBottom_toBottomOf="parent"
+    <Button
+        android:id="@+id/btnNextStage"
+        android:layout_width="257dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="44dp"
+        android:text="@string/text_next_stage"
+        android:visibility="invisible"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/llSlideArea"
-        app:srcCompat="@drawable/hoshi" />
+        app:layout_constraintTop_toBottomOf="@+id/surfaceView" />
 
 </android.support.constraint.ConstraintLayout>
