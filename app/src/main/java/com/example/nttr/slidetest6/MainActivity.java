@@ -10,6 +10,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -20,6 +21,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,8 +78,8 @@ public class MainActivity extends AppCompatActivity {
     Bitmap mBitmap;
     //CustomView[] cv = new CustomView[4];
     //final int UNDEFINED_RESOURCE = 0;        // CustomViewと共通
-    private int mBackgroundColor = Color.CYAN;
-    private int mVanishColor = R.color.hotpink;
+    private int mBackgroundColor = R.color.skyblue;
+    private int mVanishColor = R.color.lightpink;
 
     // 4分割の部位の添え字(aryImgRes[][]の第2要素の添え字の一部
     private final int PART_UL = 0; // 左上
@@ -122,6 +124,9 @@ public class MainActivity extends AppCompatActivity {
 
         // 次へボタンの初期設定
         mBtnNextStage = (Button) findViewById(R.id.btnNextStage);
+        // フォント変更
+        mBtnNextStage.setTypeface(Typeface.createFromAsset(getAssets(),getString(R.string.custom_font_name)));
+
         mBtnNextStage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1296,7 +1301,7 @@ public class MainActivity extends AppCompatActivity {
         for (int k = 0; k < aryImgRes.length; k++) {
             Bitmap bitmapBase = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bitmapBase);
-            canvas.drawColor(mBackgroundColor); // 背景色を指定
+            canvas.drawColor(resources.getColor(mBackgroundColor)); // 背景色を指定
 
             Bitmap bitmapWork1;
             Bitmap bitmapWork2;

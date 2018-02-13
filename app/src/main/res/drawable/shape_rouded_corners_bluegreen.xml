@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- https://qiita.com/masaibar/items/3df3ebbb981cd274fe78 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <!--ボタン通常時のレイアウト-->
+    <item android:state_pressed="false">
+        <shape android:shape="rectangle">
+            <corners
+                android:topRightRadius="10dp"
+                android:bottomRightRadius="10dp"
+                android:bottomLeftRadius="10dp"
+                android:topLeftRadius="10dp"
+                />
+            <solid
+                android:color="@color/mediumseagreen"
+                />
+        </shape>
+    </item>
+    <!--ボタン押下時のレイアウト-->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <corners
+                android:topRightRadius="10dp"
+                android:bottomRightRadius="10dp"
+                android:bottomLeftRadius="10dp"
+                android:topLeftRadius="10dp"
+                />
+            <solid
+                android:color="@color/darkgreen"
+                />
+        </shape>
+    </item>
+</selector>
