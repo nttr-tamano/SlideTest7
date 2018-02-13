@@ -13,8 +13,9 @@
                 android:topLeftRadius="10dp"
                 />
             <solid
-                android:color="@color/mediumseagreen"
+                android:color="@color/dimgray"
                 />
+            <!-- android:color="@color/mediumseagreen"-->
         </shape>
     </item>
     <!--ボタン押下時のレイアウト-->
