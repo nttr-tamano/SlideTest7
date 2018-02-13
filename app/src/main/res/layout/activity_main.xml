@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_grad"
     tools:context="com.example.nttr.slidetest6.MainActivity">
 
     <LinearLayout
@@ -14,7 +15,7 @@
         android:layout_marginEnd="32dp"
         android:layout_marginStart="32dp"
         android:layout_marginTop="48dp"
-        android:background="@android:color/darker_gray"
+        android:background="@color/steelblue"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -38,15 +39,24 @@
 
     <Button
         android:id="@+id/btnNextStage"
-        android:layout_width="257dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="44dp"
+        android:background="@drawable/shape_rouded_corners_green"
+        android:padding="5dp"
         android:text="@string/text_next_stage"
+        android:textColor="@color/sandybrown"
+        android:textSize="36sp"
+        android:textStyle="bold"
         android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.504"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/surfaceView" />
+        app:layout_constraintTop_toBottomOf="@+id/surfaceView"
+        app:layout_constraintVertical_bias="0.0" />
 
 </android.support.constraint.ConstraintLayout>
