@@ -2,6 +2,7 @@ package com.example.nttr.slidetest6;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.graphics.Typeface;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -15,9 +16,21 @@ import android.widget.TextView;
 
 public class TitleActivity extends AppCompatActivity {
 
+    // Intent
+    final int REQUEST_TRIAL = 1;
+    final int REQUEST_EASY = 2;
+    final int REQUEST_ENDLESS = 3;
+    final int REQUEST_HARD = 4;
+
+    final int INTENT_MODE_TRIAL   = 0;
+    final int INTENT_MODE_EASY    = 1;
+    final int INTENT_MODE_ENDLESS = 2;
+    final int INTENT_MODE_HARD    = 3;
+
     int intentPieceX = 4;
     int intentPieceY = 4;
 
+    Button btnTrial;
     Button btnEasy;
     Button btnEndless;
     Button btnHard;
@@ -71,37 +84,100 @@ public class TitleActivity extends AppCompatActivity {
             }
         });
 
+        // フォント指定に必要な値の取得
+        AssetManager asset = getAssets();
+        String fontName = getString(R.string.custom_font_name);
+
         // テキストの設定
         TextView textAppTitle = (TextView) findViewById(R.id.textAppTitle);
-        textAppTitle.setTypeface(Typeface.createFromAsset(getAssets(),getString(R.string.custom_font_name)));
+        textAppTitle.setTypeface(Typeface.createFromAsset(asset, fontName));
 
         // ボタンの設定
+        btnTrial = (Button) findViewById(R.id.btnTrial);
+        btnTrial.setTypeface(Typeface.createFromAsset(asset, fontName));
         btnEasy = (Button) findViewById(R.id.btnEasy);
-        btnEasy.setTypeface(Typeface.createFromAsset(getAssets(),getString(R.string.custom_font_name)));
+        btnEasy.setTypeface(Typeface.createFromAsset(asset, fontName));
         btnEndless = (Button) findViewById(R.id.btnEndless);
-        btnEndless.setTypeface(Typeface.createFromAsset(getAssets(),getString(R.string.custom_font_name)));
+        btnEndless.setTypeface(Typeface.createFromAsset(asset, fontName));
         btnHard = (Button) findViewById(R.id.btnHard);
-        btnHard.setTypeface(Typeface.createFromAsset(getAssets(),getString(R.string.custom_font_name)));
+        btnHard.setTypeface(Typeface.createFromAsset(asset, fontName));
 
+        // ボタンクリック時の動作の定義
+        btnTrial.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                buttonClick(view, REQUEST_TRIAL);
+            }
+        });
         btnEasy.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                btnEasyClick(view);
+                buttonClick(view, REQUEST_EASY);
+            }
+        });
+        btnEndless.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                buttonClick(view, REQUEST_ENDLESS);
+            }
+        });
+        btnHard.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                buttonClick(view, REQUEST_HARD);
             }
         });
     }
 
-    // かんたん 開始
-    void btnEasyClick(View v) {
+    // ボタンクリックで、各モード開始
+    void buttonClick(View v, int requestCode) {
         // 画面の遷移にはIntentというクラスを使用します。
         // Intentは、Android内でActivity同士やアプリ間の通信を行う際の通信内容を記述するクラスです。
         Intent intent = new Intent(this, MainActivity.class);
+        String intentNamePieceX = getString(R.string.intent_name_piece_x);
+        String intentNamePieceY = getString(R.string.intent_name_piece_y);
+        String intentNameMode = getString(R.string.intent_name_mode);
         // Intentに渡す引数
-        intent.putExtra("PieceX",intentPieceX);
-        intent.putExtra("PieceY",intentPieceY);
+        switch (requestCode) {
+            case REQUEST_TRIAL:
+                // とらいある
+                intent.putExtra(intentNamePieceX, 4);   // 固定
+                intent.putExtra(intentNamePieceY, 4);   // 固定
+                intent.putExtra(intentNameMode, INTENT_MODE_TRIAL);
+                break;
+            case REQUEST_EASY:
+                // かんたん
+                intent.putExtra(intentNamePieceX, intentPieceX);
+                intent.putExtra(intentNamePieceY, intentPieceY);
+                intent.putExtra(intentNameMode, INTENT_MODE_EASY);
+                break;
+            case REQUEST_ENDLESS:
+                // いつまでも
+                intent.putExtra(intentNamePieceX, intentPieceX);
+                intent.putExtra(intentNamePieceY, intentPieceY);
+                intent.putExtra(intentNameMode, INTENT_MODE_ENDLESS);
+                break;
+            case REQUEST_HARD:
+                // むずかしい
+                intent.putExtra(intentNamePieceX, intentPieceX);
+                intent.putExtra(intentNamePieceY, intentPieceY);
+                intent.putExtra(intentNameMode, INTENT_MODE_HARD);
+                break;
+        }
 
         // startActivityで、Intentの内容を発行します。
-        startActivity(intent);
+        startActivityForResult(intent, requestCode);
+
+    }
+
+    // タイトルに戻った時の処理
+    // https://qiita.com/kskso9/items/01c8bbb39355af9ec25e
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.d("Result",requestCode+" was retuned.");
+
+        //TODO 返ってきたときの処理を記載
 
     }
 }

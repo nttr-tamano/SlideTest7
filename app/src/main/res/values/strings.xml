@@ -1,9 +1,17 @@
 <resources>
-    <string name="app_name">SlideTest5</string>
-    <string name="text_next_stage">次のステージへ</string>
+    <string name="app_name">スライドえあわせパズル</string>
+    <string name="text_next_stage">つぎのステージへ</string>
+    <string name="text_final_stage">タイトルへもどる</string>
     <string name="custom_font_name">KodomoRounded.otf</string>
     <string name="text_app_title">スライド\nえあわせ\nパズル</string>
     <string name="btn_easy">かんたん</string>
     <string name="btn_endless">いつまでも</string>
     <string name="btn_hard">むずかしい</string>
+    <string name="btn_trial">おためし</string>
+    <string name="intent_name_piece_x">PieceX</string>
+    <string name="intent_name_piece_y">PieceY</string>
+    <string name="intent_name_mode">Mode</string>
+    <string name="text_move">回</string>
+    <string name="text_vanish">マス</string>
+    <string name="text_score">てん</string>
 </resources>

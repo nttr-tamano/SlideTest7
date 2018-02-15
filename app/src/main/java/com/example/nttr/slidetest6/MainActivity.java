@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -33,13 +34,32 @@ public class MainActivity extends AppCompatActivity {
     // タッチイベントを処理するためのインタフェース
     private GestureDetector mGestureDetector;
 
+    // Intent
+    final int INTENT_MODE_TRIAL   = 0;
+    final int INTENT_MODE_EASY    = 1;
+    final int INTENT_MODE_ENDLESS = 2;
+    final int INTENT_MODE_HARD    = 3;
+    Intent mIntent;
+
+    // アクティビティ生成時の引数
     // スライドエリアの縦横のマス数
     private int mPieceX = 4;
     private int mPieceY = 4; // 原則同数にする。異なる場合、各マスが長方形になる
+    private int mMode = 0;
 
     // ステージ管理系
     private int mStageNumber = 0; // 初期値は0。loadNewStageを呼ぶと1以上になる
     Button mBtnNextStage;   // 次へボタン
+    boolean flagFinalStage = false;
+
+    // 点数管理系
+    private int mMoveCount = 0;
+    private int mVanishCount = 0;
+    final int SCORE_VANISH_1 = 10; // 1組模様を消した点数
+    final int SCORE_VANISH_2 =  5; // 2組同時消ししたボーナス
+    final int SCORE_CLEAR = 50;
+    private int mScore = 0;
+    TextView textScore;
 
     // レイアウト関連
     private final int PIECE_MARGIN = 8;    // 各マスのマージン。mPieceX=4で調整
@@ -119,6 +139,22 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // アクティビティの引数チェック
+        mIntent = getIntent();
+        mPieceX = mIntent.getIntExtra("PieceX", 4);
+        mPieceY = mIntent.getIntExtra("PieceY", mPieceX);
+        // 指定可能な最低値以上へ補正
+        mPieceX = Math.max(mPieceX, 3);
+        mPieceY = Math.max(mPieceY, 3);
+
+        mMode = mIntent.getIntExtra("Mode", 0);
+
+        // スコア表示
+        textScore = (TextView) findViewById(R.id.textScore);
+        textScore.setTypeface(Typeface.createFromAsset(getAssets(),getString(R.string.custom_font_name)));
+        // 初期表示
+        changeScore(0,false);
+
         // SurfaceViewの初期設定
         mSurfaceView = (TranslationSurfaceView) findViewById(R.id.surfaceView);
 
@@ -127,13 +163,20 @@ public class MainActivity extends AppCompatActivity {
         // フォント変更
         mBtnNextStage.setTypeface(Typeface.createFromAsset(getAssets(),getString(R.string.custom_font_name)));
 
+        // 次へまたは終了ボタン。flagFinalStageで制御
         mBtnNextStage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // 次のステージを開始
-                loadNewStage();
-                // ボタン自身は再び非表示にする
-                mBtnNextStage.setVisibility(View.INVISIBLE);
+                if (flagFinalStage == false) {
+                    // 次のステージを開始
+                    loadNewStage();
+                    // ボタン自身は再び非表示にする
+                    mBtnNextStage.setVisibility(View.INVISIBLE);
+                } else {
+                    // タイトルへ戻る
+                    setResult(RESULT_OK, mIntent);
+                    finish();
+                }
             }
         });
 
@@ -340,6 +383,18 @@ public class MainActivity extends AppCompatActivity {
                         }
                         break;
                 }
+
+                // 模様を消したことによる加算
+                if (flagMatch1 && flagMatch2) {
+                    // 2個同時消し
+                    changeScore(SCORE_VANISH_1 * 2 + SCORE_VANISH_2, false);
+                    mVanishCount += 2;
+                } else if (flagMatch1 || flagMatch2 ) {
+                    // 1個だけ
+                    changeScore(SCORE_VANISH_1, false);
+                    mVanishCount += 1;
+                }
+
                 Log.d("check","mAnimeDirection="+mAnimeDirection
                         +",flagMatch1="+flagMatch1+",flagMatch2="+flagMatch2);
 
@@ -348,6 +403,7 @@ public class MainActivity extends AppCompatActivity {
                     boolean flagClear = checkStageClear();
                     // ステージクリアしたら、次へボタンを表示
                     if (flagClear) {
+                        changeScore(SCORE_CLEAR, false);
                         mBtnNextStage.setVisibility(View.VISIBLE);
                     }
                 }
@@ -553,6 +609,9 @@ public class MainActivity extends AppCompatActivity {
             mAnimeDestIndex = destViewIndex;
             mAnimeDestCenterX = cvLeft + cv.getWidth() / 2;
             mAnimeDestCenterY = cvTop + cv.getHeight() / 2;
+            // 1マス移動してまだ移動中。スコアを減らす、移動数を増やす
+            changeScore(-1, true);
+            Log.d("score","move next. score update");
 
             //Log.d("onScroll", "src: "+mAnimeSrcIndex+" dest: "+mAnimeDestIndex);
 
@@ -652,6 +711,10 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                     destImageView.setVisibility(View.VISIBLE);
+                    //// 移動終了。スコアを減らす、移動数を増やす
+                    //changeScore(-1, true);
+                    //Log.d("score","move end. score update");
+
                     super.onAnimationEnd(animation);
                 }
             });
@@ -748,10 +811,12 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < 4; i++) {   // 当面は4つマッチとする。5つ目を使わないためforeach不可
                 // まだマッチさせていない箇所があれば、クリアしていない
                 if (imgRes[i] != SELECT_NONE) {
+                    Log.d("checkStageClear",Arrays.deepToString(aryImgRes));
                     return false;
                 }
             }
         }
+        Log.d("checkStageClear","Stage: "+mStageNumber+" Clear!");
         return true;
     }
 
@@ -873,7 +938,7 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d("vanish","targetResID="+targetResID);
 
-        // 画像初期設定のパクリ（ここから）
+        // 画像初期設定をコピーして加工（ここから）
 
         // 表示するビットマップ群の定義
         // ビュー内の4箇所に、配置すべき画像情報を加工して配置したビットマップを生成
@@ -972,7 +1037,7 @@ public class MainActivity extends AppCompatActivity {
         //destImageView.setVisibility(View.VISIBLE);
         //mBitmapList.add(bitmapBase);
         //mBitmapList.set(targetResID,bitmapWork2); // 置き換え
-        // 画像初期設定のパクリ（ここまで）
+        // 画像初期設定をコピーして加工（ここまで）
 
         return targetCode;
     }
@@ -1008,6 +1073,27 @@ public class MainActivity extends AppCompatActivity {
         isAttached = false;
         mThread = null; //スレッドを終了
         */
+    }
+
+    // アクティビティ終了時
+    @Override
+    protected void onDestroy() {
+        // アクティビティにOKを返す
+        setResult(RESULT_CANCELED, mIntent);
+        finish();
+        super.onDestroy();
+    }
+
+    // スコア更新
+    void changeScore(int score, boolean flagMove) {
+        if (flagMove) {
+            mMoveCount++;
+        }
+        mScore += score;
+        textScore.setText(String.format("%d%s、%d%s、\n%d%s",
+                mMoveCount, getString(R.string.text_move),
+                mVanishCount, getString(R.string.text_vanish),
+                mScore, getString(R.string.text_score)));
     }
 
     // フリックの開始位置にあるCustomViewのIDを取得
@@ -1185,97 +1271,42 @@ public class MainActivity extends AppCompatActivity {
 
         // ステージ番号をインクリメント
         mStageNumber++;
-        // エンドレス
-        if (mStageNumber >= 8) {
-            mStageNumber = 7;
-        }
+//        // エンドレス
+//        if (mStageNumber >= 8) {
+//            mStageNumber = 7;
+//        }
 
         //// test
         //mStageNumber = 7;
 
         // http://blog.goo.ne.jp/xypenguin/e/e1cfcc0b1a8c3acdbe023bbef8944dac
         // コード値の組と、初期配置先CustomViewの添え字を更新
-        switch (mStageNumber) {
-            case 1:
-                // 1個 // ステージ1用
-                aryImgRes = new int[][]{
-                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           3, 4},
-                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 7},
-                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
-                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
-                };
+        switch (mMode) {
+            case INTENT_MODE_TRIAL:
+                createTrialStage();
                 break;
 
-            case 2:
-                // 上下2個 // ステージ2用
-                aryImgRes = new int[][]{
-                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
-                        {SELECT_NONE, SELECT_NONE,           6, SELECT_NONE, 1},
-                        {SELECT_NONE,           5, SELECT_NONE,           3, 4},
-                        {          4, SELECT_NONE,           2, SELECT_NONE, 7},
-                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
-                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
-                };
+            case INTENT_MODE_EASY:
+                switch (mStageNumber) {
+                    default:
+                        // ランダムステージ
+
+                        // 乱数(1～Nまで)
+                        // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
+                        Random r = new Random();
+                        int panelNumber = r.nextInt(mPieceX * mPieceY - 2) + 1;
+                        int patternNumber = r.nextInt(7) + 1;
+                        createRandomStage(panelNumber, patternNumber);
+                        break;
+                }
                 break;
 
-            case 3:
-                // 左右2個 // ステージ3用
-                aryImgRes = new int[][]{
-                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
-                        {SELECT_NONE, SELECT_NONE,           6,           3, 1},
-                        {SELECT_NONE,           5, SELECT_NONE, SELECT_NONE, 4},
-                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 2},
-                        {          4,           1, SELECT_NONE, SELECT_NONE,13},
-                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 6},
-                };
+            case INTENT_MODE_ENDLESS:
                 break;
 
-            case 4:
-                // 左右2個+2個 // ステージ4用
-                aryImgRes = new int[][]{
-                        {         12, SELECT_NONE, SELECT_NONE,           7, 0},
-                        {          8,          13,           6,           3, 1},
-                        {SELECT_NONE,           5, SELECT_NONE,          11, 4},
-                        {SELECT_NONE,           9,           2, SELECT_NONE, 2},
-                        {          4,           1,          10,          15,13},
-                        {          0, SELECT_NONE,          14, SELECT_NONE, 6},
-                };
+            case INTENT_MODE_HARD:
                 break;
 
-            case 5:
-                // 7個 // ステージ5用
-                aryImgRes = new int[][]{
-                        {         12,          17,          26,           7, 0},
-                        {          8,          13,           6,           3, 1},
-                        {         16,           5,          22,          11, 4},
-                        {         24,           9,           2,          23, 2},
-                        {          4,           1,          10,          15,13},
-                        {          0,          21,          18,          27, 6},
-                        {         20,          25,          14,          19, 8},
-                };
-                break;
-
-            case 6:
-                // 同じ模様が複数
-                aryImgRes = new int[][]{
-                        {          0,           1,           2,           3, 4},
-                        {          0,           1,           2,           3, 7},
-                        {          0,           1,           2,           3, 8},
-                        {          0,           1,           2,           3, 9},
-                };
-                break;
-
-            case 7:
-                // ランダム 6パネル,4模様　//　ステージ7用
-                //createRandomStage(6,4);
-
-                // 乱数(1～Nまで)
-                // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
-                Random r = new Random();
-                int panelNumber = r.nextInt(mPieceX * mPieceY - 2) + 1;
-                int patternNumber = r.nextInt(7) + 1;
-                createRandomStage(panelNumber, patternNumber);
-                break;
         }
 
         // 表示するビットマップ群の定義
@@ -1332,6 +1363,99 @@ public class MainActivity extends AppCompatActivity {
             mBitmapList.add(bitmapBase);
         }
 
+    }
+
+    private void createTrialStage() {
+        switch (mStageNumber) {
+            case 1:
+                // 1個
+                aryImgRes = new int[][]{
+                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           3, 4},
+                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 7},
+                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
+                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
+                };
+                break;
+
+            case 2:
+                // 1個、バラバラ
+                aryImgRes = new int[][]{
+                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           3, 0},
+                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 3},
+                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE,12},
+                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE,15},
+                };
+                break;
+
+            case 3:
+                // 上下2個、まとめ消し
+                aryImgRes = new int[][]{
+                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
+                        {SELECT_NONE, SELECT_NONE,           6, SELECT_NONE, 1},
+                        {SELECT_NONE,           5, SELECT_NONE,           3, 4},
+                        {          4, SELECT_NONE,           2, SELECT_NONE, 7},
+                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
+                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
+                };
+                break;
+
+            case 4:
+                // 左右2個、まとめ消し
+                aryImgRes = new int[][]{
+                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
+                        {SELECT_NONE, SELECT_NONE,           6,           3, 1},
+                        {SELECT_NONE,           5, SELECT_NONE, SELECT_NONE, 4},
+                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 2},
+                        {          4,           1, SELECT_NONE, SELECT_NONE,13},
+                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 6},
+                };
+                break;
+
+            case 5:
+                // 左右2個+2個 // ステージ4用
+                aryImgRes = new int[][]{
+                        {         12, SELECT_NONE, SELECT_NONE,           7, 4},
+                        {          8,          13,           6,           3, 5},
+                        {SELECT_NONE,           5, SELECT_NONE,          11, 8},
+                        {SELECT_NONE,           9,           2, SELECT_NONE, 6},
+                        {          4,           1,          10,          15,13},
+                        {          0, SELECT_NONE,          14, SELECT_NONE,10},
+                };
+                break;
+
+            case 6:
+                // 同じ模様が複数、を2セット
+                aryImgRes = new int[][]{
+                        {          0,           1,           2,           3, 0},
+                        {          0,           1,           2,           3, 2},
+                        {          0,           1,           2,           3, 4},
+                        {          0,           1,           2,           3, 5},
+                        {          4,           5,           6,           7, 7},
+                        {          4,           5,           6,           7,10},
+                        {          4,           5,           6,           7,14},
+                        {          4,           5,           6,           7,15},
+                };
+                break;
+
+            case 7:
+                // 7個(全模様)
+                aryImgRes = new int[][]{
+                        {         12,          17,          26,           7, 0},
+                        {          8,          13,           6,           3, 1},
+                        {         16,           5,          22,          11, 4},
+                        {         24,           9,           2,          23, 2},
+                        {          4,           1,          10,          15,13},
+                        {          0,          21,          18,          27, 6},
+                        {         20,          25,          14,          19, 8},
+                };
+
+                // 最終ステージのため、クリア時のボタンのキャプションとフラグを変更
+                mBtnNextStage.setText(getString(R.string.text_final_stage));
+                flagFinalStage = true;
+
+                break;
+
+        }
     }
 
     private void createRandomStage(int panelNumber, int patternNumber) {
