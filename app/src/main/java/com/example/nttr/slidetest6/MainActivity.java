@@ -1115,12 +1115,12 @@ public class MainActivity extends AppCompatActivity {
             int ivRight = ivLeft + iv.getWidth();
             int ivBottom = ivTop + iv.getHeight();
 
-            // 判定を厳しくする(余白の内側のみにする)
+            // 判定を厳しくする(余白の内側のみにする)→しなくていい
             // ※余白は、Viewのpaddingプロパティにするのもあり
-            ivLeft   += PIECE_MARGIN;
-            ivTop    += PIECE_MARGIN;
-            ivRight  -= PIECE_MARGIN;
-            ivBottom -= PIECE_MARGIN;
+            //ivLeft   += PIECE_MARGIN;
+            //ivTop    += PIECE_MARGIN;
+            //ivRight  -= PIECE_MARGIN;
+            //ivBottom -= PIECE_MARGIN;
 
             // マイナス(矛盾)を補正しないのは、次のif文が成立しないため
 
@@ -1295,13 +1295,16 @@ public class MainActivity extends AppCompatActivity {
                         // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
                         Random r = new Random();
                         int panelNumber = r.nextInt(mPieceX * mPieceY - 2) + 1;
-                        int patternNumber = r.nextInt(7) + 1;
-                        createRandomStage(panelNumber, patternNumber);
+                        int patternNumber = r.nextInt(c2r.getPatternNumber()) + 1;
+                        createEasyStage(panelNumber, patternNumber);
                         break;
                 }
                 break;
 
             case INTENT_MODE_ENDLESS:
+                // 上下左右の辺にを角以外埋めるくらいの個数
+                int panelNumber = (Math.max(mPieceX, mPieceY) - 2) * 4;
+                createEndlessStage(panelNumber);
                 break;
 
             case INTENT_MODE_HARD:
@@ -1343,6 +1346,9 @@ public class MainActivity extends AppCompatActivity {
                     if (aryImgRes[k][BitmapId] != SELECT_NONE) {
                         // コードをリソースIDへ変換
                         resId = c2r.getResID(aryImgRes[k][BitmapId]);
+                        // 180216: ステージ生成時にぬるぽで異常終了があり、以下でdebugした
+                        //Log.d("loadNewStage","resId="+resId+",aryImageRes[k="+k+"][BitmapId="+BitmapId+"]="+aryImgRes[k][BitmapId]);
+
                         // Bitmapをリソースから読み込む
                         bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
                         // サイズ補正（AccBall参照）
@@ -1365,6 +1371,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    // とらいある
     private void createTrialStage() {
         switch (mStageNumber) {
             case 1:
@@ -1458,7 +1465,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void createRandomStage(int panelNumber, int patternNumber) {
+    // かんたん
+    private void createEasyStage(int panelNumber, int patternNumber) {
         //int panelNumber = 6;
         //int patternNumber = 4;
         final int partNumber = 4; // 固定
@@ -1476,8 +1484,8 @@ public class MainActivity extends AppCompatActivity {
             patternNumber = panelNumber;
         }
 
-        aryImgRes = new int[panelNumber][(partNumber+1)];
         // 全要素を初期化
+        aryImgRes = new int[panelNumber][(partNumber+1)];
         for (int[] imgRes: aryImgRes) {
             Arrays.fill(imgRes, SELECT_NONE);
         }
@@ -1505,6 +1513,7 @@ public class MainActivity extends AppCompatActivity {
             patterns.remove(0);        // 先頭の要素を削除
             patterns.add(pattern);          // 先頭の要素を末尾へ追加
         }
+        // パネル設置位置
         int j = partNumber;
         for (int i = 0; i < panelNumber; i++) {
             aryImgRes[i][j] = panels[i];
@@ -1516,4 +1525,61 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    // さばいばる
+    private void createEndlessStage(int panelNumber) {
+        final int partNumber = 4; // 固定
+        // 値の補正
+        // パネルは、partNumber(4)以上、全マス数-1以下
+        if (panelNumber < partNumber) {
+            panelNumber = partNumber;
+        } else if (panelNumber >= mPieceX * mPieceY) {
+            panelNumber = mPieceX * mPieceY - 1;
+        }
+
+        // 全要素を初期化
+        aryImgRes = new int[panelNumber][(partNumber + 1)];
+        for (int[] imgRes : aryImgRes) {
+            Arrays.fill(imgRes, SELECT_NONE);
+        }
+
+        // パネルID
+        int[] panels = c2r.getRandomPermutations(mPieceX * mPieceY - 1, panelNumber);
+        int[] parts = c2r.getRandomPermutations(partNumber, partNumber);
+
+        Log.d("random", "pieces[]=" + Arrays.toString(panels));
+        Log.d("random", "pieces[]=" + Arrays.toString(parts));
+
+        // 各パネルの各部位でランダムに模様を配置し、配列要素へ代入
+        // 乱数(1～Nまで)
+        // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
+        Random random = new Random();
+        final int bound = 100;
+        int appear = 50;    // 出現率のパーセントの整数表記
+        int rate;                 // 乱数値
+        int pattern = SELECT_NONE;
+
+        // 部位毎に処理
+        for (int j = 0; j < partNumber; j++) {
+            for (int i = 0; i < panelNumber; i++) {
+                rate = random.nextInt(bound);
+                // 出現
+                if (rate < appear) {
+                    pattern = random.nextInt(c2r.getPatternNumber());
+                    // 模様の通番から部位のリソースのIDを算出
+                    aryImgRes[i][parts[j]] = pattern * partNumber + parts[j];
+                }
+
+            }
+        }
+        // パネル設置位置
+        int j = partNumber;
+        for (int i = 0; i < panelNumber; i++) {
+            aryImgRes[i][j] = panels[i];
+        }
+
+        // debug 2次元配列の出力
+        // https://teratail.com/questions/533
+        Log.d("random", Arrays.deepToString(aryImgRes));
+
+    }
 }

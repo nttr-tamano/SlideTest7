@@ -45,7 +45,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="44dp"
-        android:background="@drawable/shape_rouded_corners_green"
+        android:background="@drawable/shape_rouded_corners_easy"
         android:padding="5dp"
         android:text="@string/text_next_stage"
         android:textColor="@color/sandybrown"
