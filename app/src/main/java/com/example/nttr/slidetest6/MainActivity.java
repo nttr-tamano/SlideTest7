@@ -26,6 +26,7 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
@@ -51,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private int mStageNumber = 0; // 初期値は0。loadNewStageを呼ぶと1以上になる
     Button mBtnNextStage;   // 次へボタン
     boolean flagFinalStage = false;
+    ArrayList<PatternParts> listPP = new ArrayList<>();
 
     // 点数管理系
     private int mMoveCount = 0;
@@ -284,6 +286,39 @@ public class MainActivity extends AppCompatActivity {
         flagSetBitmap = true;
     }
 
+    private class PatternParts {
+        int mPattern = SELECT_NONE;
+        int mPart = SELECT_NONE;
+
+        PatternParts() {
+            this(SELECT_NONE, SELECT_NONE);
+        }
+
+        PatternParts(int mPattern, int mPart) {
+            setPatternPart(mPattern, mPart);
+        }
+
+        void setPattern(int mPattern) {
+            this.mPattern = mPattern;
+        }
+
+        void setPart(int mPart) {
+            this.mPart = mPart;
+        }
+
+        void setPatternPart(int mPattern, int mPart) {
+            setPattern(mPattern);
+            setPart(mPart);
+        }
+
+        int getPattern() {
+            return mPattern;
+        }
+
+        int getPart() {
+            return mPart;
+        }
+    }
 
     // タッチイベントにジェスチャー受付を定義
     @Override
@@ -395,8 +430,8 @@ public class MainActivity extends AppCompatActivity {
                     mVanishCount += 1;
                 }
 
-                Log.d("check","mAnimeDirection="+mAnimeDirection
-                        +",flagMatch1="+flagMatch1+",flagMatch2="+flagMatch2);
+                //Log.d("check","mAnimeDirection="+mAnimeDirection
+                //        +",flagMatch1="+flagMatch1+",flagMatch2="+flagMatch2);
 
                 // 模様のマッチが成立したらステージクリア判定
                 if (flagMatch1 || flagMatch2) {
@@ -414,7 +449,7 @@ public class MainActivity extends AppCompatActivity {
                 //mAnimeDestIndex = SELECT_NONE;
 
                 action = "Touch Up";
-                Log.d("Touch", action + " x=" + x + ", y=" + y);
+                //Log.d("Touch", action + " x=" + x + ", y=" + y);
                 break;
 
             case MotionEvent.ACTION_CANCEL:
@@ -611,7 +646,7 @@ public class MainActivity extends AppCompatActivity {
             mAnimeDestCenterY = cvTop + cv.getHeight() / 2;
             // 1マス移動してまだ移動中。スコアを減らす、移動数を増やす
             changeScore(-1, true);
-            Log.d("score","move next. score update");
+            //Log.d("score","move next. score update");
 
             //Log.d("onScroll", "src: "+mAnimeSrcIndex+" dest: "+mAnimeDestIndex);
 
@@ -1088,6 +1123,11 @@ public class MainActivity extends AppCompatActivity {
     void changeScore(int score, boolean flagMove) {
         if (flagMove) {
             mMoveCount++;
+            // さばいばるの場合は一定回数移動したら部位をランダム追加
+            if (mMode == INTENT_MODE_ENDLESS && mMoveCount % 5 == 0) {
+                int patternNumber = Math.min(c2r.getPatternNumber(), mPieceX + 1);
+                addEndlessParts(patternNumber, mPieceX + 1);
+            }
         }
         mScore += score;
         textScore.setText(String.format("%d%s、%d%s、\n%d%s",
@@ -1127,7 +1167,7 @@ public class MainActivity extends AppCompatActivity {
             // 引数の座標がこのView内であるか判定
             if (ivLeft < flingX && flingX < ivRight
                     && ivTop < flingY && flingY < ivBottom ) {
-                Log.d("onScroll", "In ImageView-" + i);
+                //Log.d("onScroll", "In ImageView-" + i);
                 // Viewが見つかったのでループ中断
                 index = i;
                 break;
@@ -1281,30 +1321,36 @@ public class MainActivity extends AppCompatActivity {
 
         // http://blog.goo.ne.jp/xypenguin/e/e1cfcc0b1a8c3acdbe023bbef8944dac
         // コード値の組と、初期配置先CustomViewの添え字を更新
+        final int partNumber = 4;
+        int patternNumber = 0;
+        int panelNumber = 0;
         switch (mMode) {
             case INTENT_MODE_TRIAL:
                 createTrialStage();
                 break;
 
             case INTENT_MODE_EASY:
-                switch (mStageNumber) {
-                    default:
-                        // ランダムステージ
+                // かんたん
+                // ランダムステージ
 
-                        // 乱数(1～Nまで)
-                        // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
-                        Random r = new Random();
-                        int panelNumber = r.nextInt(mPieceX * mPieceY - 2) + 1;
-                        int patternNumber = r.nextInt(c2r.getPatternNumber()) + 1;
-                        createEasyStage(panelNumber, patternNumber);
-                        break;
-                }
+                // 乱数(1～Nまで)
+                // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
+                Random r = new Random();
+                patternNumber = r.nextInt(c2r.getPatternNumber()) + 1;
+                panelNumber = r.nextInt(mPieceX * mPieceY - 2) + 1;
+                createEasyStage(patternNumber, panelNumber);
                 break;
 
             case INTENT_MODE_ENDLESS:
+                // さばいばる
+                // 1ステージ
+
+                // クリアできそうな模様の種類数
+                patternNumber = Math.min(c2r.getPatternNumber(), mPieceX + 1);
+
                 // 上下左右の辺にを角以外埋めるくらいの個数
-                int panelNumber = (Math.max(mPieceX, mPieceY) - 2) * 4;
-                createEndlessStage(panelNumber);
+                panelNumber = (Math.max(mPieceX, mPieceY) - 2) * 5;
+                createEndlessStage(patternNumber, panelNumber);
                 break;
 
             case INTENT_MODE_HARD:
@@ -1466,7 +1512,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // かんたん
-    private void createEasyStage(int panelNumber, int patternNumber) {
+    private void createEasyStage(int patternNumber, int panelNumber) {
         //int panelNumber = 6;
         //int patternNumber = 4;
         final int partNumber = 4; // 固定
@@ -1526,7 +1572,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // さばいばる
-    private void createEndlessStage(int panelNumber) {
+    private void createEndlessStage(int patternNumber, int panelNumber) {
         final int partNumber = 4; // 固定
         // 値の補正
         // パネルは、partNumber(4)以上、全マス数-1以下
@@ -1536,6 +1582,17 @@ public class MainActivity extends AppCompatActivity {
             panelNumber = mPieceX * mPieceY - 1;
         }
 
+        // 画面に出現する部位のリスト（１次元）を作る
+        for (int i = 0; i < patternNumber; i++) {
+            for (int j = 0; j < partNumber; j++) {
+                listPP.add(new PatternParts(i,j));
+                listPP.add(new PatternParts(i,j)); // 2個目
+                listPP.add(new PatternParts(i,j)); // 3個目
+            }
+        }
+        // ランダム
+        Collections.shuffle(listPP);
+
         // 全要素を初期化
         aryImgRes = new int[panelNumber][(partNumber + 1)];
         for (int[] imgRes : aryImgRes) {
@@ -1544,31 +1601,29 @@ public class MainActivity extends AppCompatActivity {
 
         // パネルID
         int[] panels = c2r.getRandomPermutations(mPieceX * mPieceY - 1, panelNumber);
-        int[] parts = c2r.getRandomPermutations(partNumber, partNumber);
+        //int[] parts = c2r.getRandomPermutations(partNumber, partNumber);
 
         Log.d("random", "pieces[]=" + Arrays.toString(panels));
-        Log.d("random", "pieces[]=" + Arrays.toString(parts));
+        //Log.d("random", "pieces[]=" + Arrays.toString(parts));
 
         // 各パネルの各部位でランダムに模様を配置し、配列要素へ代入
         // 乱数(1～Nまで)
         // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
-        Random random = new Random();
-        final int bound = 100;
-        int appear = 50;    // 出現率のパーセントの整数表記
-        int rate;                 // 乱数値
+        //Random random = new Random();
+        //final int bound = 100;
+        //int appear = 50;    // 出現率のパーセントの整数表記
+        //int rate;           // 乱数値
         int pattern = SELECT_NONE;
+        int part = SELECT_NONE;
 
-        // 部位毎に処理
-        for (int j = 0; j < partNumber; j++) {
-            for (int i = 0; i < panelNumber; i++) {
-                rate = random.nextInt(bound);
-                // 出現
-                if (rate < appear) {
-                    pattern = random.nextInt(c2r.getPatternNumber());
-                    // 模様の通番から部位のリソースのIDを算出
-                    aryImgRes[i][parts[j]] = pattern * partNumber + parts[j];
-                }
-
+        // 部位リストを各パネルに1個ずつ配置し、リストから取り除く
+        for (int i = 0; i < panelNumber; i++) {
+            PatternParts pp = listPP.get(0);
+            pattern = pp.getPattern();
+            part = pp.getPart();
+            if ( aryImgRes[i][part] == SELECT_NONE) {
+                aryImgRes[i][part] = pattern * partNumber + part;
+                listPP.remove(0);
             }
         }
         // パネル設置位置
@@ -1582,4 +1637,82 @@ public class MainActivity extends AppCompatActivity {
         Log.d("random", Arrays.deepToString(aryImgRes));
 
     }
+
+    // さばいばる　部位追加
+    private void addEndlessParts(int patternNumber, int addNumber) {
+        final int partNumber = 4; // 固定
+
+        // 各パネルの各部位でランダムに模様を配置し、配列要素へ代入
+        // 乱数(1～Nまで)
+        // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
+        Random random = new Random();
+        final int bound = 100;
+        int appear = 50;    // 出現率のパーセントの整数表記
+        int rate;           // 乱数値
+        int pattern = SELECT_NONE;
+        int part = SELECT_NONE;
+        int addCount = 0;
+        boolean flagAdd = false;
+
+        // パネルの個数
+        int panelNumber = mPieceX * mPieceY - 1;
+
+        for (int j = 0; j < addNumber; j++) {
+
+            // パネルIDのランダムリスト
+            int[] panels = c2r.getRandomPermutations(panelNumber, panelNumber);
+
+            // 追加する部位の取り出し
+            PatternParts pp = listPP.get(0);
+            pattern = pp.getPattern();
+            part = pp.getPart();
+
+            flagAdd = false;
+
+            for (int i = 0; i < panelNumber; i++) {
+
+                CustomView cv = mImagePieces.get(panels[i]);
+                // 非表示はスキップ
+                if (cv.getVisibility() == View.INVISIBLE) {
+                    continue;
+                }
+
+                // 各部位をチェック
+                int resId = cv.getResID();
+                // すでに部位があればスキップ
+                if (aryImgRes[resId][part] != SELECT_NONE) {
+                    continue;
+                }
+
+                // 部位を追加
+                //180218 バグ。すでに模様のあるところに上書き発生を確認。要調査
+                Log.d("addPart","OLD: aryImgRes[resId="+resId+"][part="+part+"]="+aryImgRes[resId][part]);
+                aryImgRes[resId][part] = pattern * partNumber + part;
+                addCount++;
+                flagAdd = true;
+                Log.d("addPart","NEW: aryImgRes[resId="+resId+"][part="+part+"]="+aryImgRes[resId][part]);
+
+                // 画面を更新
+                vanishImage(panels[i],DIRECTION_NONE,part,aryImgRes[resId][part]);
+                break;
+            }
+            // 結果をlistPPへ反映
+            if (flagAdd) {
+                // 追加できた
+                listPP.remove(0);
+            } else {
+                // 追加できなかったので後回し
+                // 無限ループ懸念
+                listPP.add(pp);
+                listPP.remove(0);
+            }
+        }
+        Log.d("addEndlessParts",addCount+" parts added.");
+
+        // debug 2次元配列の出力
+        // https://teratail.com/questions/533
+        Log.d("random", Arrays.deepToString(aryImgRes));
+
+    }
+
 }
