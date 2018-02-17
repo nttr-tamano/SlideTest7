@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -25,6 +26,7 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
@@ -33,13 +35,33 @@ public class MainActivity extends AppCompatActivity {
     // タッチイベントを処理するためのインタフェース
     private GestureDetector mGestureDetector;
 
+    // Intent
+    final int INTENT_MODE_TRIAL   = 0;
+    final int INTENT_MODE_EASY    = 1;
+    final int INTENT_MODE_ENDLESS = 2;
+    final int INTENT_MODE_HARD    = 3;
+    Intent mIntent;
+
+    // アクティビティ生成時の引数
     // スライドエリアの縦横のマス数
     private int mPieceX = 4;
     private int mPieceY = 4; // 原則同数にする。異なる場合、各マスが長方形になる
+    private int mMode = 0;
 
     // ステージ管理系
     private int mStageNumber = 0; // 初期値は0。loadNewStageを呼ぶと1以上になる
     Button mBtnNextStage;   // 次へボタン
+    boolean flagFinalStage = false;
+    ArrayList<PatternParts> listPP = new ArrayList<>();
+
+    // 点数管理系
+    private int mMoveCount = 0;
+    private int mVanishCount = 0;
+    final int SCORE_VANISH_1 = 10; // 1組模様を消した点数
+    final int SCORE_VANISH_2 =  5; // 2組同時消ししたボーナス
+    final int SCORE_CLEAR = 50;
+    private int mScore = 0;
+    TextView textScore;
 
     // レイアウト関連
     private final int PIECE_MARGIN = 8;    // 各マスのマージン。mPieceX=4で調整
@@ -119,6 +141,22 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // アクティビティの引数チェック
+        mIntent = getIntent();
+        mPieceX = mIntent.getIntExtra("PieceX", 4);
+        mPieceY = mIntent.getIntExtra("PieceY", mPieceX);
+        // 指定可能な最低値以上へ補正
+        mPieceX = Math.max(mPieceX, 3);
+        mPieceY = Math.max(mPieceY, 3);
+
+        mMode = mIntent.getIntExtra("Mode", 0);
+
+        // スコア表示
+        textScore = (TextView) findViewById(R.id.textScore);
+        textScore.setTypeface(Typeface.createFromAsset(getAssets(),getString(R.string.custom_font_name)));
+        // 初期表示
+        changeScore(0,false);
+
         // SurfaceViewの初期設定
         mSurfaceView = (TranslationSurfaceView) findViewById(R.id.surfaceView);
 
@@ -127,13 +165,20 @@ public class MainActivity extends AppCompatActivity {
         // フォント変更
         mBtnNextStage.setTypeface(Typeface.createFromAsset(getAssets(),getString(R.string.custom_font_name)));
 
+        // 次へまたは終了ボタン。flagFinalStageで制御
         mBtnNextStage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // 次のステージを開始
-                loadNewStage();
-                // ボタン自身は再び非表示にする
-                mBtnNextStage.setVisibility(View.INVISIBLE);
+                if (flagFinalStage == false) {
+                    // 次のステージを開始
+                    loadNewStage();
+                    // ボタン自身は再び非表示にする
+                    mBtnNextStage.setVisibility(View.INVISIBLE);
+                } else {
+                    // タイトルへ戻る
+                    setResult(RESULT_OK, mIntent);
+                    finish();
+                }
             }
         });
 
@@ -241,6 +286,39 @@ public class MainActivity extends AppCompatActivity {
         flagSetBitmap = true;
     }
 
+    private class PatternParts {
+        int mPattern = SELECT_NONE;
+        int mPart = SELECT_NONE;
+
+        PatternParts() {
+            this(SELECT_NONE, SELECT_NONE);
+        }
+
+        PatternParts(int mPattern, int mPart) {
+            setPatternPart(mPattern, mPart);
+        }
+
+        void setPattern(int mPattern) {
+            this.mPattern = mPattern;
+        }
+
+        void setPart(int mPart) {
+            this.mPart = mPart;
+        }
+
+        void setPatternPart(int mPattern, int mPart) {
+            setPattern(mPattern);
+            setPart(mPart);
+        }
+
+        int getPattern() {
+            return mPattern;
+        }
+
+        int getPart() {
+            return mPart;
+        }
+    }
 
     // タッチイベントにジェスチャー受付を定義
     @Override
@@ -340,14 +418,27 @@ public class MainActivity extends AppCompatActivity {
                         }
                         break;
                 }
-                Log.d("check","mAnimeDirection="+mAnimeDirection
-                        +",flagMatch1="+flagMatch1+",flagMatch2="+flagMatch2);
+
+                // 模様を消したことによる加算
+                if (flagMatch1 && flagMatch2) {
+                    // 2個同時消し
+                    changeScore(SCORE_VANISH_1 * 2 + SCORE_VANISH_2, false);
+                    mVanishCount += 2;
+                } else if (flagMatch1 || flagMatch2 ) {
+                    // 1個だけ
+                    changeScore(SCORE_VANISH_1, false);
+                    mVanishCount += 1;
+                }
+
+                //Log.d("check","mAnimeDirection="+mAnimeDirection
+                //        +",flagMatch1="+flagMatch1+",flagMatch2="+flagMatch2);
 
                 // 模様のマッチが成立したらステージクリア判定
                 if (flagMatch1 || flagMatch2) {
                     boolean flagClear = checkStageClear();
                     // ステージクリアしたら、次へボタンを表示
                     if (flagClear) {
+                        changeScore(SCORE_CLEAR, false);
                         mBtnNextStage.setVisibility(View.VISIBLE);
                     }
                 }
@@ -358,7 +449,7 @@ public class MainActivity extends AppCompatActivity {
                 //mAnimeDestIndex = SELECT_NONE;
 
                 action = "Touch Up";
-                Log.d("Touch", action + " x=" + x + ", y=" + y);
+                //Log.d("Touch", action + " x=" + x + ", y=" + y);
                 break;
 
             case MotionEvent.ACTION_CANCEL:
@@ -553,6 +644,9 @@ public class MainActivity extends AppCompatActivity {
             mAnimeDestIndex = destViewIndex;
             mAnimeDestCenterX = cvLeft + cv.getWidth() / 2;
             mAnimeDestCenterY = cvTop + cv.getHeight() / 2;
+            // 1マス移動してまだ移動中。スコアを減らす、移動数を増やす
+            changeScore(-1, true);
+            //Log.d("score","move next. score update");
 
             //Log.d("onScroll", "src: "+mAnimeSrcIndex+" dest: "+mAnimeDestIndex);
 
@@ -652,6 +746,10 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                     destImageView.setVisibility(View.VISIBLE);
+                    //// 移動終了。スコアを減らす、移動数を増やす
+                    //changeScore(-1, true);
+                    //Log.d("score","move end. score update");
+
                     super.onAnimationEnd(animation);
                 }
             });
@@ -748,10 +846,12 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < 4; i++) {   // 当面は4つマッチとする。5つ目を使わないためforeach不可
                 // まだマッチさせていない箇所があれば、クリアしていない
                 if (imgRes[i] != SELECT_NONE) {
+                    Log.d("checkStageClear",Arrays.deepToString(aryImgRes));
                     return false;
                 }
             }
         }
+        Log.d("checkStageClear","Stage: "+mStageNumber+" Clear!");
         return true;
     }
 
@@ -873,7 +973,7 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d("vanish","targetResID="+targetResID);
 
-        // 画像初期設定のパクリ（ここから）
+        // 画像初期設定をコピーして加工（ここから）
 
         // 表示するビットマップ群の定義
         // ビュー内の4箇所に、配置すべき画像情報を加工して配置したビットマップを生成
@@ -972,7 +1072,7 @@ public class MainActivity extends AppCompatActivity {
         //destImageView.setVisibility(View.VISIBLE);
         //mBitmapList.add(bitmapBase);
         //mBitmapList.set(targetResID,bitmapWork2); // 置き換え
-        // 画像初期設定のパクリ（ここまで）
+        // 画像初期設定をコピーして加工（ここまで）
 
         return targetCode;
     }
@@ -1010,6 +1110,32 @@ public class MainActivity extends AppCompatActivity {
         */
     }
 
+    // アクティビティ終了時
+    @Override
+    protected void onDestroy() {
+        // アクティビティにOKを返す
+        setResult(RESULT_CANCELED, mIntent);
+        finish();
+        super.onDestroy();
+    }
+
+    // スコア更新
+    void changeScore(int score, boolean flagMove) {
+        if (flagMove) {
+            mMoveCount++;
+            // さばいばるの場合は一定回数移動したら部位をランダム追加
+            if (mMode == INTENT_MODE_ENDLESS && mMoveCount % 5 == 0) {
+                int patternNumber = Math.min(c2r.getPatternNumber(), mPieceX + 1);
+                addEndlessParts(patternNumber, mPieceX + 1);
+            }
+        }
+        mScore += score;
+        textScore.setText(String.format("%d%s、%d%s、\n%d%s",
+                mMoveCount, getString(R.string.text_move),
+                mVanishCount, getString(R.string.text_vanish),
+                mScore, getString(R.string.text_score)));
+    }
+
     // フリックの開始位置にあるCustomViewのIDを取得
     private int getViewIndex(float flingX, float flingY) {
         int index = SELECT_NONE;
@@ -1029,19 +1155,19 @@ public class MainActivity extends AppCompatActivity {
             int ivRight = ivLeft + iv.getWidth();
             int ivBottom = ivTop + iv.getHeight();
 
-            // 判定を厳しくする(余白の内側のみにする)
+            // 判定を厳しくする(余白の内側のみにする)→しなくていい
             // ※余白は、Viewのpaddingプロパティにするのもあり
-            ivLeft   += PIECE_MARGIN;
-            ivTop    += PIECE_MARGIN;
-            ivRight  -= PIECE_MARGIN;
-            ivBottom -= PIECE_MARGIN;
+            //ivLeft   += PIECE_MARGIN;
+            //ivTop    += PIECE_MARGIN;
+            //ivRight  -= PIECE_MARGIN;
+            //ivBottom -= PIECE_MARGIN;
 
             // マイナス(矛盾)を補正しないのは、次のif文が成立しないため
 
             // 引数の座標がこのView内であるか判定
             if (ivLeft < flingX && flingX < ivRight
                     && ivTop < flingY && flingY < ivBottom ) {
-                Log.d("onScroll", "In ImageView-" + i);
+                //Log.d("onScroll", "In ImageView-" + i);
                 // Viewが見つかったのでループ中断
                 index = i;
                 break;
@@ -1185,97 +1311,51 @@ public class MainActivity extends AppCompatActivity {
 
         // ステージ番号をインクリメント
         mStageNumber++;
-        // エンドレス
-        if (mStageNumber >= 8) {
-            mStageNumber = 7;
-        }
+//        // エンドレス
+//        if (mStageNumber >= 8) {
+//            mStageNumber = 7;
+//        }
 
         //// test
         //mStageNumber = 7;
 
         // http://blog.goo.ne.jp/xypenguin/e/e1cfcc0b1a8c3acdbe023bbef8944dac
         // コード値の組と、初期配置先CustomViewの添え字を更新
-        switch (mStageNumber) {
-            case 1:
-                // 1個 // ステージ1用
-                aryImgRes = new int[][]{
-                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           3, 4},
-                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 7},
-                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
-                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
-                };
+        final int partNumber = 4;
+        int patternNumber = 0;
+        int panelNumber = 0;
+        switch (mMode) {
+            case INTENT_MODE_TRIAL:
+                createTrialStage();
                 break;
 
-            case 2:
-                // 上下2個 // ステージ2用
-                aryImgRes = new int[][]{
-                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
-                        {SELECT_NONE, SELECT_NONE,           6, SELECT_NONE, 1},
-                        {SELECT_NONE,           5, SELECT_NONE,           3, 4},
-                        {          4, SELECT_NONE,           2, SELECT_NONE, 7},
-                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
-                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
-                };
-                break;
-
-            case 3:
-                // 左右2個 // ステージ3用
-                aryImgRes = new int[][]{
-                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
-                        {SELECT_NONE, SELECT_NONE,           6,           3, 1},
-                        {SELECT_NONE,           5, SELECT_NONE, SELECT_NONE, 4},
-                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 2},
-                        {          4,           1, SELECT_NONE, SELECT_NONE,13},
-                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 6},
-                };
-                break;
-
-            case 4:
-                // 左右2個+2個 // ステージ4用
-                aryImgRes = new int[][]{
-                        {         12, SELECT_NONE, SELECT_NONE,           7, 0},
-                        {          8,          13,           6,           3, 1},
-                        {SELECT_NONE,           5, SELECT_NONE,          11, 4},
-                        {SELECT_NONE,           9,           2, SELECT_NONE, 2},
-                        {          4,           1,          10,          15,13},
-                        {          0, SELECT_NONE,          14, SELECT_NONE, 6},
-                };
-                break;
-
-            case 5:
-                // 7個 // ステージ5用
-                aryImgRes = new int[][]{
-                        {         12,          17,          26,           7, 0},
-                        {          8,          13,           6,           3, 1},
-                        {         16,           5,          22,          11, 4},
-                        {         24,           9,           2,          23, 2},
-                        {          4,           1,          10,          15,13},
-                        {          0,          21,          18,          27, 6},
-                        {         20,          25,          14,          19, 8},
-                };
-                break;
-
-            case 6:
-                // 同じ模様が複数
-                aryImgRes = new int[][]{
-                        {          0,           1,           2,           3, 4},
-                        {          0,           1,           2,           3, 7},
-                        {          0,           1,           2,           3, 8},
-                        {          0,           1,           2,           3, 9},
-                };
-                break;
-
-            case 7:
-                // ランダム 6パネル,4模様　//　ステージ7用
-                //createRandomStage(6,4);
+            case INTENT_MODE_EASY:
+                // かんたん
+                // ランダムステージ
 
                 // 乱数(1～Nまで)
                 // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
                 Random r = new Random();
-                int panelNumber = r.nextInt(mPieceX * mPieceY - 2) + 1;
-                int patternNumber = r.nextInt(7) + 1;
-                createRandomStage(panelNumber, patternNumber);
+                patternNumber = r.nextInt(c2r.getPatternNumber()) + 1;
+                panelNumber = r.nextInt(mPieceX * mPieceY - 2) + 1;
+                createEasyStage(patternNumber, panelNumber);
                 break;
+
+            case INTENT_MODE_ENDLESS:
+                // さばいばる
+                // 1ステージ
+
+                // クリアできそうな模様の種類数
+                patternNumber = Math.min(c2r.getPatternNumber(), mPieceX + 1);
+
+                // 上下左右の辺にを角以外埋めるくらいの個数
+                panelNumber = (Math.max(mPieceX, mPieceY) - 2) * 5;
+                createEndlessStage(patternNumber, panelNumber);
+                break;
+
+            case INTENT_MODE_HARD:
+                break;
+
         }
 
         // 表示するビットマップ群の定義
@@ -1312,6 +1392,9 @@ public class MainActivity extends AppCompatActivity {
                     if (aryImgRes[k][BitmapId] != SELECT_NONE) {
                         // コードをリソースIDへ変換
                         resId = c2r.getResID(aryImgRes[k][BitmapId]);
+                        // 180216: ステージ生成時にぬるぽで異常終了があり、以下でdebugした
+                        //Log.d("loadNewStage","resId="+resId+",aryImageRes[k="+k+"][BitmapId="+BitmapId+"]="+aryImgRes[k][BitmapId]);
+
                         // Bitmapをリソースから読み込む
                         bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
                         // サイズ補正（AccBall参照）
@@ -1334,7 +1417,102 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void createRandomStage(int panelNumber, int patternNumber) {
+    // とらいある
+    private void createTrialStage() {
+        switch (mStageNumber) {
+            case 1:
+                // 1個
+                aryImgRes = new int[][]{
+                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           3, 4},
+                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 7},
+                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
+                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
+                };
+                break;
+
+            case 2:
+                // 1個、バラバラ
+                aryImgRes = new int[][]{
+                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           3, 0},
+                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 3},
+                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE,12},
+                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE,15},
+                };
+                break;
+
+            case 3:
+                // 上下2個、まとめ消し
+                aryImgRes = new int[][]{
+                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
+                        {SELECT_NONE, SELECT_NONE,           6, SELECT_NONE, 1},
+                        {SELECT_NONE,           5, SELECT_NONE,           3, 4},
+                        {          4, SELECT_NONE,           2, SELECT_NONE, 7},
+                        {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
+                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 9},
+                };
+                break;
+
+            case 4:
+                // 左右2個、まとめ消し
+                aryImgRes = new int[][]{
+                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
+                        {SELECT_NONE, SELECT_NONE,           6,           3, 1},
+                        {SELECT_NONE,           5, SELECT_NONE, SELECT_NONE, 4},
+                        {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 2},
+                        {          4,           1, SELECT_NONE, SELECT_NONE,13},
+                        {          0, SELECT_NONE, SELECT_NONE, SELECT_NONE, 6},
+                };
+                break;
+
+            case 5:
+                // 左右2個+2個 // ステージ4用
+                aryImgRes = new int[][]{
+                        {         12, SELECT_NONE, SELECT_NONE,           7, 4},
+                        {          8,          13,           6,           3, 5},
+                        {SELECT_NONE,           5, SELECT_NONE,          11, 8},
+                        {SELECT_NONE,           9,           2, SELECT_NONE, 6},
+                        {          4,           1,          10,          15,13},
+                        {          0, SELECT_NONE,          14, SELECT_NONE,10},
+                };
+                break;
+
+            case 6:
+                // 同じ模様が複数、を2セット
+                aryImgRes = new int[][]{
+                        {          0,           1,           2,           3, 0},
+                        {          0,           1,           2,           3, 2},
+                        {          0,           1,           2,           3, 4},
+                        {          0,           1,           2,           3, 5},
+                        {          4,           5,           6,           7, 7},
+                        {          4,           5,           6,           7,10},
+                        {          4,           5,           6,           7,14},
+                        {          4,           5,           6,           7,15},
+                };
+                break;
+
+            case 7:
+                // 7個(全模様)
+                aryImgRes = new int[][]{
+                        {         12,          17,          26,           7, 0},
+                        {          8,          13,           6,           3, 1},
+                        {         16,           5,          22,          11, 4},
+                        {         24,           9,           2,          23, 2},
+                        {          4,           1,          10,          15,13},
+                        {          0,          21,          18,          27, 6},
+                        {         20,          25,          14,          19, 8},
+                };
+
+                // 最終ステージのため、クリア時のボタンのキャプションとフラグを変更
+                mBtnNextStage.setText(getString(R.string.text_final_stage));
+                flagFinalStage = true;
+
+                break;
+
+        }
+    }
+
+    // かんたん
+    private void createEasyStage(int patternNumber, int panelNumber) {
         //int panelNumber = 6;
         //int patternNumber = 4;
         final int partNumber = 4; // 固定
@@ -1352,8 +1530,8 @@ public class MainActivity extends AppCompatActivity {
             patternNumber = panelNumber;
         }
 
-        aryImgRes = new int[panelNumber][(partNumber+1)];
         // 全要素を初期化
+        aryImgRes = new int[panelNumber][(partNumber+1)];
         for (int[] imgRes: aryImgRes) {
             Arrays.fill(imgRes, SELECT_NONE);
         }
@@ -1381,6 +1559,7 @@ public class MainActivity extends AppCompatActivity {
             patterns.remove(0);        // 先頭の要素を削除
             patterns.add(pattern);          // 先頭の要素を末尾へ追加
         }
+        // パネル設置位置
         int j = partNumber;
         for (int i = 0; i < panelNumber; i++) {
             aryImgRes[i][j] = panels[i];
@@ -1389,6 +1568,150 @@ public class MainActivity extends AppCompatActivity {
         // debug 2次元配列の出力
         // https://teratail.com/questions/533
         Log.d("random",Arrays.deepToString(aryImgRes));
+
+    }
+
+    // さばいばる
+    private void createEndlessStage(int patternNumber, int panelNumber) {
+        final int partNumber = 4; // 固定
+        // 値の補正
+        // パネルは、partNumber(4)以上、全マス数-1以下
+        if (panelNumber < partNumber) {
+            panelNumber = partNumber;
+        } else if (panelNumber >= mPieceX * mPieceY) {
+            panelNumber = mPieceX * mPieceY - 1;
+        }
+
+        // 画面に出現する部位のリスト（１次元）を作る
+        for (int i = 0; i < patternNumber; i++) {
+            for (int j = 0; j < partNumber; j++) {
+                listPP.add(new PatternParts(i,j));
+                listPP.add(new PatternParts(i,j)); // 2個目
+                listPP.add(new PatternParts(i,j)); // 3個目
+            }
+        }
+        // ランダム
+        Collections.shuffle(listPP);
+
+        // 全要素を初期化
+        aryImgRes = new int[panelNumber][(partNumber + 1)];
+        for (int[] imgRes : aryImgRes) {
+            Arrays.fill(imgRes, SELECT_NONE);
+        }
+
+        // パネルID
+        int[] panels = c2r.getRandomPermutations(mPieceX * mPieceY - 1, panelNumber);
+        //int[] parts = c2r.getRandomPermutations(partNumber, partNumber);
+
+        Log.d("random", "pieces[]=" + Arrays.toString(panels));
+        //Log.d("random", "pieces[]=" + Arrays.toString(parts));
+
+        // 各パネルの各部位でランダムに模様を配置し、配列要素へ代入
+        // 乱数(1～Nまで)
+        // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
+        //Random random = new Random();
+        //final int bound = 100;
+        //int appear = 50;    // 出現率のパーセントの整数表記
+        //int rate;           // 乱数値
+        int pattern = SELECT_NONE;
+        int part = SELECT_NONE;
+
+        // 部位リストを各パネルに1個ずつ配置し、リストから取り除く
+        for (int i = 0; i < panelNumber; i++) {
+            PatternParts pp = listPP.get(0);
+            pattern = pp.getPattern();
+            part = pp.getPart();
+            if ( aryImgRes[i][part] == SELECT_NONE) {
+                aryImgRes[i][part] = pattern * partNumber + part;
+                listPP.remove(0);
+            }
+        }
+        // パネル設置位置
+        int j = partNumber;
+        for (int i = 0; i < panelNumber; i++) {
+            aryImgRes[i][j] = panels[i];
+        }
+
+        // debug 2次元配列の出力
+        // https://teratail.com/questions/533
+        Log.d("random", Arrays.deepToString(aryImgRes));
+
+    }
+
+    // さばいばる　部位追加
+    private void addEndlessParts(int patternNumber, int addNumber) {
+        final int partNumber = 4; // 固定
+
+        // 各パネルの各部位でランダムに模様を配置し、配列要素へ代入
+        // 乱数(1～Nまで)
+        // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
+        Random random = new Random();
+        final int bound = 100;
+        int appear = 50;    // 出現率のパーセントの整数表記
+        int rate;           // 乱数値
+        int pattern = SELECT_NONE;
+        int part = SELECT_NONE;
+        int addCount = 0;
+        boolean flagAdd = false;
+
+        // パネルの個数
+        int panelNumber = mPieceX * mPieceY - 1;
+
+        for (int j = 0; j < addNumber; j++) {
+
+            // パネルIDのランダムリスト
+            int[] panels = c2r.getRandomPermutations(panelNumber, panelNumber);
+
+            // 追加する部位の取り出し
+            PatternParts pp = listPP.get(0);
+            pattern = pp.getPattern();
+            part = pp.getPart();
+
+            flagAdd = false;
+
+            for (int i = 0; i < panelNumber; i++) {
+
+                CustomView cv = mImagePieces.get(panels[i]);
+                // 非表示はスキップ
+                if (cv.getVisibility() == View.INVISIBLE) {
+                    continue;
+                }
+
+                // 各部位をチェック
+                int resId = cv.getResID();
+                // すでに部位があればスキップ
+                if (aryImgRes[resId][part] != SELECT_NONE) {
+                    continue;
+                }
+
+                // 部位を追加
+                //180218 バグ。すでに模様のあるところに上書き発生を確認。要調査
+                Log.d("addPart","OLD: aryImgRes[resId="+resId+"][part="+part+"]="+aryImgRes[resId][part]);
+                aryImgRes[resId][part] = pattern * partNumber + part;
+                addCount++;
+                flagAdd = true;
+                Log.d("addPart","NEW: aryImgRes[resId="+resId+"][part="+part+"]="+aryImgRes[resId][part]);
+
+                // 画面を更新
+                vanishImage(panels[i],DIRECTION_NONE,part,aryImgRes[resId][part]);
+                break;
+            }
+            // 結果をlistPPへ反映
+            if (flagAdd) {
+                // 追加できた
+                listPP.remove(0);
+            } else {
+                // 追加できなかったので後回し
+                // 無限ループ懸念
+                listPP.add(pp);
+                listPP.remove(0);
+            }
+        }
+        Log.d("addEndlessParts",addCount+" parts added.");
+
+        // debug 2次元配列の出力
+        // https://teratail.com/questions/533
+        Log.d("random", Arrays.deepToString(aryImgRes));
 
     }
 

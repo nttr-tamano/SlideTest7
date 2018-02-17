@@ -1,5 +1,7 @@
 package com.example.nttr.slidetest6;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -12,6 +14,7 @@ import java.util.Collections;
 public class CodeToResource {
     final int SELECT_NONE = -1;
     private ArrayList<Integer> aryResID = new ArrayList<>();
+    private int mPatternNumber;
 
     public CodeToResource() {
         // ピンク、星
@@ -49,6 +52,10 @@ public class CodeToResource {
         aryResID.add(R.drawable.orange_mikan_ll);
         aryResID.add(R.drawable.orange_mikan_ur);
         aryResID.add(R.drawable.orange_mikan_ul);
+
+        // 4個セットなので、総数を4で除算。1以上でないとゲームは成立しない
+        mPatternNumber = aryResID.size() / 4;
+        //Log.d("c2r","mPatternNumber="+mPatternNumber+",aryResID size="+aryResID.size());
     }
 
     // 指定したリソース番号のリソースIDを返す
@@ -57,6 +64,11 @@ public class CodeToResource {
             return aryResID.get(code);
         }
         return SELECT_NONE;
+    }
+
+    // 模様の個数を返す
+    public int getPatternNumber() {
+        return mPatternNumber;
     }
 
     // 0から始まる数字をランダムに並べ替え、指定文字数だけを配列で返す。
@@ -95,8 +107,19 @@ public class CodeToResource {
     public ArrayList<Integer> getRandomPermutationsPadding(int totalNumber, int returnNumber) {
         ArrayList<Integer> population = new ArrayList<>();
         // 並べ替えるリストを作成
+        // 0からではなく、ランダムにreturnNumber個を並べる
+        ArrayList<Integer> pattern = new ArrayList<>();
+        for (int i = 0; i < mPatternNumber; i++) {
+            pattern.add(i);
+        }
+        Collections.shuffle(pattern);
+
         for (int i = 0; i < returnNumber; i++) {
-            population.add(i);
+            if (i < mPatternNumber) {
+                population.add(pattern.get(i));
+            } else {
+                population.add(SELECT_NONE);
+            }
         }
         for (int i = returnNumber; i < totalNumber; i++) {
             population.add(SELECT_NONE);
