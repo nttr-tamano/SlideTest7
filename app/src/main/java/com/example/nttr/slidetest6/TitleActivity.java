@@ -1,6 +1,5 @@
 package com.example.nttr.slidetest6;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.graphics.Typeface;
@@ -19,12 +18,12 @@ public class TitleActivity extends AppCompatActivity {
     // Intent
     final int REQUEST_TRIAL = 1;
     final int REQUEST_EASY = 2;
-    final int REQUEST_ENDLESS = 3;
+    final int REQUEST_SURVIVAL = 3;
     final int REQUEST_HARD = 4;
 
     final int INTENT_MODE_TRIAL   = 0;
     final int INTENT_MODE_EASY    = 1;
-    final int INTENT_MODE_ENDLESS = 2;
+    final int INTENT_MODE_SURVIVAL = 2;
     final int INTENT_MODE_HARD    = 3;
 
     int intentPieceX = 4;
@@ -32,7 +31,7 @@ public class TitleActivity extends AppCompatActivity {
 
     Button btnTrial;
     Button btnEasy;
-    Button btnEndless;
+    Button btnSurvival;
     Button btnHard;
 
     @Override
@@ -97,8 +96,8 @@ public class TitleActivity extends AppCompatActivity {
         btnTrial.setTypeface(Typeface.createFromAsset(asset, fontName));
         btnEasy = (Button) findViewById(R.id.btnEasy);
         btnEasy.setTypeface(Typeface.createFromAsset(asset, fontName));
-        btnEndless = (Button) findViewById(R.id.btnEndless);
-        btnEndless.setTypeface(Typeface.createFromAsset(asset, fontName));
+        btnSurvival = (Button) findViewById(R.id.btnSurvival);
+        btnSurvival.setTypeface(Typeface.createFromAsset(asset, fontName));
         btnHard = (Button) findViewById(R.id.btnHard);
         btnHard.setTypeface(Typeface.createFromAsset(asset, fontName));
 
@@ -115,10 +114,10 @@ public class TitleActivity extends AppCompatActivity {
                 buttonClick(view, REQUEST_EASY);
             }
         });
-        btnEndless.setOnClickListener(new View.OnClickListener() {
+        btnSurvival.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                buttonClick(view, REQUEST_ENDLESS);
+                buttonClick(view, REQUEST_SURVIVAL);
             }
         });
         btnHard.setOnClickListener(new View.OnClickListener() {
@@ -151,11 +150,11 @@ public class TitleActivity extends AppCompatActivity {
                 intent.putExtra(intentNamePieceY, intentPieceY);
                 intent.putExtra(intentNameMode, INTENT_MODE_EASY);
                 break;
-            case REQUEST_ENDLESS:
+            case REQUEST_SURVIVAL:
                 // いつまでも
                 intent.putExtra(intentNamePieceX, intentPieceX);
                 intent.putExtra(intentNamePieceY, intentPieceY);
-                intent.putExtra(intentNameMode, INTENT_MODE_ENDLESS);
+                intent.putExtra(intentNameMode, INTENT_MODE_SURVIVAL);
                 break;
             case REQUEST_HARD:
                 // むずかしい

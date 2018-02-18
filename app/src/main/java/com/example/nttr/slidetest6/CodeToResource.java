@@ -52,6 +52,31 @@ public class CodeToResource {
         aryResID.add(R.drawable.orange_mikan_ll);
         aryResID.add(R.drawable.orange_mikan_ur);
         aryResID.add(R.drawable.orange_mikan_ul);
+        // 黒、おにぎり
+        aryResID.add(R.drawable.black_riceball_lr); // 28-31 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResID.add(R.drawable.black_riceball_ll);
+        aryResID.add(R.drawable.black_riceball_ur);
+        aryResID.add(R.drawable.black_riceball_ul);
+        // 黄、バナナ
+        aryResID.add(R.drawable.yellow_banana_lr); // 32-35 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResID.add(R.drawable.yellow_banana_ll);
+        aryResID.add(R.drawable.yellow_banana_ur);
+        aryResID.add(R.drawable.yellow_banana_ul);
+        // 茶、チョコレート
+        aryResID.add(R.drawable.brown_choco_lr); // 36-39 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResID.add(R.drawable.brown_choco_ll);
+        aryResID.add(R.drawable.brown_choco_ur);
+        aryResID.add(R.drawable.brown_choco_ul);
+        // 白、歯
+        aryResID.add(R.drawable.white_tooth_lr); // 40-43 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResID.add(R.drawable.white_tooth_ll);
+        aryResID.add(R.drawable.white_tooth_ur);
+        aryResID.add(R.drawable.white_tooth_ul);
+        // 紺、三日月
+        aryResID.add(R.drawable.navy_crescent_lr); // 44-47 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResID.add(R.drawable.navy_crescent_ll);
+        aryResID.add(R.drawable.navy_crescent_ur);
+        aryResID.add(R.drawable.navy_crescent_ul);
 
         // 4個セットなので、総数を4で除算。1以上でないとゲームは成立しない
         mPatternNumber = aryResID.size() / 4;
