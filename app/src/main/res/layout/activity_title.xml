@@ -8,6 +8,20 @@
     android:padding="5dp"
     tools:context="com.example.nttr.slidetest6.TitleActivity">
 
+    <ImageView
+        android:id="@+id/impAppBack"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:alpha="0.6"
+        android:scaleType="fitXY"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/slide_eawase_icon" />
+
     <TextView
         android:id="@+id/textAppTitle"
         android:layout_width="wrap_content"
@@ -18,19 +32,20 @@
         android:padding="10dp"
         android:text="@string/text_app_title"
         android:textAlignment="center"
-        android:textSize="40sp"
+        android:textColor="@color/Dark"
+        android:textSize="48sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="@+id/impAppBack" />
 
     <Spinner
         android:id="@+id/spinner"
         android:layout_width="wrap_content"
         android:layout_height="36dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="16dp"
         android:background="@color/orange"
         android:paddingEnd="20dp"
         android:paddingLeft="20dp"
@@ -38,7 +53,7 @@
         android:paddingStart="20dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textAppTitle" />
+        app:layout_constraintTop_toBottomOf="@+id/impAppBack" />
 
     <Button
         android:id="@+id/btnEasy"
@@ -66,7 +81,7 @@
         android:background="@drawable/shape_rouded_corners_suvival"
         android:text="@string/btn_endless"
         android:textColor="@color/sandybrown"
-        android:textSize="30sp"
+        android:textSize="36sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
@@ -82,7 +97,7 @@
         android:background="@drawable/shape_rouded_corners_hard"
         android:enabled="false"
         android:text="@string/btn_hard"
-        android:textColor="@color/sandybrown"
+        android:textColor="@android:color/darker_gray"
         android:textSize="30sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.497"
@@ -95,7 +110,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         android:background="@drawable/shape_rouded_corners_trial"
         android:paddingEnd="5dp"
         android:paddingLeft="5dp"
