@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -14,6 +15,7 @@ import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Html;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
@@ -64,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
     final int SCORE_CLEAR = 50;
     private int mScore = 0;
     TextView textScore;
+    TextView textExplain;
 
     // レイアウト関連
     private final int PIECE_MARGIN = 8;    // 各マスのマージン。mPieceX=4で調整
@@ -153,11 +156,17 @@ public class MainActivity extends AppCompatActivity {
 
         mMode = mIntent.getIntExtra("Mode", 0);
 
+        AssetManager asset = getAssets();
+        String fontName = getString(R.string.custom_font_name);
+
         // スコア表示
         textScore = (TextView) findViewById(R.id.textScore);
-        textScore.setTypeface(Typeface.createFromAsset(getAssets(),getString(R.string.custom_font_name)));
+        textScore.setTypeface(Typeface.createFromAsset(asset, fontName));
         // 初期表示
         changeScore(0,false);
+
+        textExplain = (TextView) findViewById(R.id.textExplain);
+        textExplain.setTypeface(Typeface.createFromAsset(asset, fontName));
 
         // SurfaceViewの初期設定
         mSurfaceView = (TranslationSurfaceView) findViewById(R.id.surfaceView);
@@ -165,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
         // 次へボタンの初期設定
         mBtnNextStage = (Button) findViewById(R.id.btnNextStage);
         // フォント変更
-        mBtnNextStage.setTypeface(Typeface.createFromAsset(getAssets(),getString(R.string.custom_font_name)));
+        mBtnNextStage.setTypeface(Typeface.createFromAsset(asset, fontName));
 
         // 次へまたは終了ボタン。flagFinalStageで制御
         mBtnNextStage.setOnClickListener(new View.OnClickListener() {
@@ -424,12 +433,12 @@ public class MainActivity extends AppCompatActivity {
                 // 模様を消したことによる加算
                 if (flagMatch1 && flagMatch2) {
                     // 2個同時消し
-                    changeScore(SCORE_VANISH_1 * 2 + SCORE_VANISH_2, false);
                     mVanishCount += 2;
+                    changeScore(SCORE_VANISH_1 * 2 + SCORE_VANISH_2, false);
                 } else if (flagMatch1 || flagMatch2 ) {
                     // 1個だけ
-                    changeScore(SCORE_VANISH_1, false);
                     mVanishCount += 1;
+                    changeScore(SCORE_VANISH_1, false);
                 }
 
                 //Log.d("check","mAnimeDirection="+mAnimeDirection
@@ -1123,6 +1132,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // スコア更新
+    @SuppressLint("DefaultLocale")
     void changeScore(int score, boolean flagMove) {
         if (flagMove) {
             mMoveCount++;
@@ -1133,10 +1143,16 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         mScore += score;
-        textScore.setText(String.format("%d%s、%d%s、\n%d%s",
+        // maroon
+        // darkgreen
+        // midnightblue + 少々
+        textScore.setText(Html.fromHtml(String.format(
+                "<font color=\"#800000\"><big>%d</big>%s</font>、"+
+                "<font color=\"#006400\"><big>%d</big>%s</font>、<br/>"+
+                "<font color=\"#303090\"><big>%d</big>%s</font>",
                 mMoveCount, getString(R.string.text_move),
                 mVanishCount, getString(R.string.text_vanish),
-                mScore, getString(R.string.text_score)));
+                mScore, getString(R.string.text_score))));
     }
 
     // フリックの開始位置にあるCustomViewのIDを取得
