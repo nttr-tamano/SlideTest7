@@ -12,7 +12,7 @@
     <string name="intent_name_piece_y">PieceY</string>
     <string name="intent_name_mode">Mode</string>
     <string name="text_move">いどう</string>
-    <string name="text_vanish">けし</string>
-    <string name="text_score">てん</string>
+    <string name="text_vanish">けし　</string>
+    <string name="text_score">てん　</string>
     <string name="text_explain">もようをあわせるときえます。\nぜんぶけせばクリアです。</string>
 </resources>
