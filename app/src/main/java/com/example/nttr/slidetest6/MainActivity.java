@@ -59,12 +59,12 @@ public class MainActivity extends AppCompatActivity {
     final int COLOR_REPEAT = 3; // 同部位の個数。最低値1
 
     // 点数管理系
-    private int mMoveCount = 0;
-    private int mVanishCount = 0;
+    private int mMoveCount = 0; //test: 9999;
+    private int mVanishCount = 0; //test: 999;
     final int SCORE_VANISH_1 = 10; // 1組模様を消した点数
     final int SCORE_VANISH_2 =  5; // 2組同時消ししたボーナス
-    final int SCORE_CLEAR = 50;
-    private int mScore = 0;
+    final int SCORE_CLEAR = 10; //50;
+    private int mScore = 0; //test: 99999;
     TextView textScore;
     TextView textExplain;
 
@@ -449,7 +449,7 @@ public class MainActivity extends AppCompatActivity {
                     boolean flagClear = checkStageClear();
                     // ステージクリアしたら、次へボタンを表示
                     if (flagClear) {
-                        changeScore(SCORE_CLEAR, false);
+                        changeScore(SCORE_CLEAR + (mStageNumber-1) * 2, false);
                         mBtnNextStage.setVisibility(View.VISIBLE);
                     }
                 }
@@ -1137,9 +1137,9 @@ public class MainActivity extends AppCompatActivity {
         if (flagMove) {
             mMoveCount++;
             // さばいばるの場合は一定回数移動したら部位をランダム追加
-            if (mMode == INTENT_MODE_SURVIVAL && mMoveCount % 5 == 0) {
+            if (mMode == INTENT_MODE_SURVIVAL && mMoveCount % 6 == 0) { // % 5
                 int patternNumber = Math.min(c2r.getPatternNumber(), mPieceX + 1);
-                addSurvivalParts(patternNumber, mPieceX + 1);
+                addSurvivalParts(patternNumber, 3); //mPieceX + 1
             }
         }
         mScore += score;
@@ -1147,8 +1147,8 @@ public class MainActivity extends AppCompatActivity {
         // darkgreen
         // midnightblue + 少々
         textScore.setText(Html.fromHtml(String.format(
-                "<font color=\"#800000\"><big>%d</big>%s</font>、"+
-                "<font color=\"#006400\"><big>%d</big>%s</font>、<br/>"+
+                "<font color=\"#800000\"><big>%d</big>%s</font><br/>"+
+                "<font color=\"#006400\"><big>%d</big>%s</font><br/>"+
                 "<font color=\"#303090\"><big>%d</big>%s</font>",
                 mMoveCount, getString(R.string.text_move),
                 mVanishCount, getString(R.string.text_vanish),
@@ -1362,12 +1362,37 @@ public class MainActivity extends AppCompatActivity {
 //                };
 //                break;
 
-                // 乱数(1～Nまで)
+//                // 乱数(1～Nまで)
+//                // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
+//                Random r = new Random();
+//                //panelNumber = r.nextInt(mPieceX * mPieceY - 2) + 1;
+//                panelNumber = r.nextInt(mPieceX * mPieceY - 4) + 4;
+//                patternNumber = r.nextInt(Math.min(c2r.getPatternNumber(),panelNumber)) + 1;
+
+                //　ステージ進行に合わせて上昇する乱数の最大値
                 // http://adash-android.jp.net/android%E3%81%A7%E4%B9%B1%E6%95%B0%E3%82%92%E5%8F%96%E5%BE%97/
                 Random r = new Random();
-                //panelNumber = r.nextInt(mPieceX * mPieceY - 2) + 1;
-                panelNumber = r.nextInt(mPieceX * mPieceY - 4) + 4;
-                patternNumber = r.nextInt(Math.min(c2r.getPatternNumber(),panelNumber)) + 1;
+
+                // ベースの4に加算する最大パネル数
+                // 3x3: stage/8 + 1(=3/2)
+                // 4x4: stage/8 + 2(=4/2)
+                // 5x5: stage/8 + 2(=5/2)
+                // 6x6: stage/8 + 3(=6/2)
+                // ベースの1に加算する最大パターン数
+                // 3x3: stage/6 + 0(=3/2-1)
+                // 4x4: stage/6 + 1(=4/2-1)
+                // 5x5: stage/6 + 1(=5/2-1)
+                // 6x6: stage/6 + 2(=6/2-1)
+                int maxAddPanel = (mStageNumber / 8) + (mPieceX / 2);
+                // 乱数の最大値がmaxAddPanelなら、+1が必要
+                maxAddPanel = Math.min(mPieceX * mPieceY - 4, maxAddPanel + 1);
+                panelNumber = r.nextInt(maxAddPanel) + 4;
+
+                int maxAddPatten = (mStageNumber / 6) + (mPieceX / 2 - 1);
+                // 乱数の最大値がmaxAddPatternなら、+1が必要
+                maxAddPatten = Math.min(c2r.getPatternNumber(), maxAddPatten + 1);
+                patternNumber = r.nextInt(maxAddPatten) + 1;
+
                 createEasyStage(patternNumber, panelNumber);
                 break;
 
