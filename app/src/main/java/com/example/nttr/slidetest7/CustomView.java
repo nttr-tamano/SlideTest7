@@ -1,4 +1,4 @@
-package com.example.nttr.slidetest6;
+package com.example.nttr.slidetest7;
 
 import android.content.Context;
 

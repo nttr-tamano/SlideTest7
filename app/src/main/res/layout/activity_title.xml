@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_grad"
     android:padding="5dp"
-    tools:context="com.example.nttr.slidetest6.TitleActivity">
+    tools:context="com.example.nttr.slidetest7.TitleActivity">
 
     <ImageView
         android:id="@+id/impAppBack"

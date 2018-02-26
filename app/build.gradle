@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 27
     defaultConfig {
-        //applicationId "com.example.nttr.slidetest6"
+        //applicationId "com.example.nttr.slidetest7"
         applicationId "jp.co.atschool.puzzle.eawase"
         minSdkVersion 19
         targetSdkVersion 27
