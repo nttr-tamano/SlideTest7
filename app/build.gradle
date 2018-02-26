@@ -1,9 +1,10 @@
 apply plugin: 'com.android.application'
+apply plugin: 'realm-android'
 
 android {
     compileSdkVersion 27
     defaultConfig {
-        //applicationId "com.example.nttr.slidetest6"
+        //applicationId "com.example.nttr.slidetest7"
         applicationId "jp.co.atschool.puzzle.eawase"
         minSdkVersion 19
         targetSdkVersion 27
@@ -28,4 +29,9 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
+    // Realm 180226
+    // https://github.com/realm/realm-android-adapters
+    // https://bintray.com/realm/maven/android-adapters
+    implementation 'io.realm:android-adapters:2.1.1'
+    // implementation 'io.realm:android-adapters:2.0.0'
 }

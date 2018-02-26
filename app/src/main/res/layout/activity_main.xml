@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_grad"
-    tools:context="com.example.nttr.slidetest6.MainActivity">
+    tools:context="com.example.nttr.slidetest7.MainActivity">
 
     <LinearLayout
         android:id="@+id/llSlideArea"
@@ -22,7 +22,7 @@
 
     </LinearLayout>
 
-    <com.example.nttr.slidetest6.TranslationSurfaceView
+    <com.example.nttr.slidetest7.TranslationSurfaceView
         android:id="@+id/surfaceView"
         android:layout_width="319dp"
         android:layout_height="319dp"

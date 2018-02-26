@@ -1,9 +1,6 @@
-package com.example.nttr.slidetest6;
-
-import android.util.Log;
+package com.example.nttr.slidetest7;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 
 /**
