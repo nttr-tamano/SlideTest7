@@ -4,6 +4,10 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.DialogFragment;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
@@ -18,6 +22,7 @@ import android.text.Html;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -139,6 +144,11 @@ public class MainActivity extends AppCompatActivity {
     // ANIME_FRAME * ANIME_WAIT_MSEC / 1000 [sec] がアニメーション時間
     //final int ANIME_FRAME = 12;
     //final int ANIME_WAIT_MSEC = 300; // msec
+
+    // Realm
+    // 中断の管理
+    static final int RETURN_YES = 1;
+    static final int RETURN_NO  = 2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -288,6 +298,9 @@ public class MainActivity extends AppCompatActivity {
         if (flagSetBitmap) {
             return;
         }
+
+        //TODO 中断データがあれば再開する
+
 
         // 次のステージを開始(初回)
         loadNewStage();
@@ -1124,10 +1137,34 @@ public class MainActivity extends AppCompatActivity {
     // アクティビティ終了時
     @Override
     protected void onDestroy() {
-        // アクティビティにOKを返す
+        // TitleActivityに返す。返すパラメータを変えるかも
         setResult(RESULT_CANCELED, mIntent);
         finish();
         super.onDestroy();
+    }
+
+    // ダイアログからのコールバック
+    // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
+    public void onReturnValue(int value) {
+        if (value == RETURN_YES) {
+            //TODO 中断処理
+
+            // TitleActivityに返す。返すパラメータを変えるかも
+            setResult(RESULT_CANCELED, mIntent);
+            finish();
+        }
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // 戻るボタンを押したとき
+        // http://www.ore-memo.com/989.html
+        if(event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+            // 終了確認ダイアログ
+            DialogFragment newFragment = new SuspendDialog();
+            newFragment.show(getFragmentManager(), "suspend");
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     // スコア更新
@@ -1792,5 +1829,4 @@ public class MainActivity extends AppCompatActivity {
         // https://teratail.com/questions/533
         Log.d("random", Arrays.deepToString(aryImgRes));
     }
-
 }

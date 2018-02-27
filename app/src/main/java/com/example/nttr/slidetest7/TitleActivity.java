@@ -73,7 +73,7 @@ public class TitleActivity extends AppCompatActivity {
                 //Log.d("spinner",item+" is selected.");
 
                 int itemId = (int)spinner.getSelectedItemId();
-                intentPieceX = Integer.valueOf(itemId) + 3; // 補正。先頭(0) => 3
+                intentPieceX = itemId + 3; // 補正。先頭(0) => 3
                 intentPieceY = intentPieceX; // 当面は同じ値にする
             }
 
@@ -174,7 +174,7 @@ public class TitleActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        Log.d("Result",requestCode+" was retuned.");
+        Log.d("Result",requestCode+" was returned.");
 
         //TODO 返ってきたときの処理を記載
 
