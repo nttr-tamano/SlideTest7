@@ -14,6 +14,8 @@ public class Suspend {
     public long id;         // 重複登録禁止のためのID
     public Date date;       // 保存日時
 
+    public int mode;        // モード
+
     public int stageNumber; // ステージ番号
 
     public int moveCount;
