@@ -4,10 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
-import android.app.AlertDialog;
-import android.app.Dialog;
 import android.app.DialogFragment;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
@@ -35,6 +32,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 
+import io.realm.Realm;
+
 public class MainActivity extends AppCompatActivity {
         //implements SurfaceHolder.Callback,Runnable { //implements View.OnTouchListener {
 
@@ -55,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private int mMode = 0;
 
     // ステージ管理系
+    PlayInfo playInfo = new PlayInfo();
     private int mStageNumber = 0; // 初期値は0。loadNewStageを呼ぶと1以上になる
     Button mBtnNextStage;   // 次へボタン
     boolean flagFinalStage = false;
@@ -146,6 +146,7 @@ public class MainActivity extends AppCompatActivity {
     //final int ANIME_WAIT_MSEC = 300; // msec
 
     // Realm
+    Realm realm;
     // 中断の管理
     static final int RETURN_YES = 1;
     static final int RETURN_NO  = 2;
@@ -163,16 +164,19 @@ public class MainActivity extends AppCompatActivity {
         mPieceX = Math.max(mPieceX, 3);
         mPieceY = Math.max(mPieceY, 3);
 
-        mMode = mIntent.getIntExtra("Mode", 0);
+        playInfo.pieceX = Math.max(mPieceX, 3);
+        playInfo.pieceY = Math.max(mPieceY, 3);
 
+        mMode = mIntent.getIntExtra("Mode", 0);
+        playInfo.mode = mIntent.getIntExtra("Mode", 0);
+
+        // Viewの設定(主にカスタムフォント)
         AssetManager asset = getAssets();
         String fontName = getString(R.string.custom_font_name);
 
         // スコア表示
         textScore = (TextView) findViewById(R.id.textScore);
         textScore.setTypeface(Typeface.createFromAsset(asset, fontName));
-        // 初期表示
-        changeScore(0,false);
 
         textExplain = (TextView) findViewById(R.id.textExplain);
         textExplain.setTypeface(Typeface.createFromAsset(asset, fontName));
@@ -182,7 +186,6 @@ public class MainActivity extends AppCompatActivity {
 
         // 次へボタンの初期設定
         mBtnNextStage = (Button) findViewById(R.id.btnNextStage);
-        // フォント変更
         mBtnNextStage.setTypeface(Typeface.createFromAsset(asset, fontName));
 
         // 次へまたは終了ボタン。flagFinalStageで制御
@@ -201,6 +204,10 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        // 再開時は設定が異なる？
+        // 初期表示
+        updateScore(0,false);
 
 //        mHolder = mSurfaceView.getHolder();
 //        // コールバック設定
@@ -446,11 +453,11 @@ public class MainActivity extends AppCompatActivity {
                 if (flagMatch1 && flagMatch2) {
                     // 2個同時消し
                     mVanishCount += 2;
-                    changeScore(SCORE_VANISH_1 * 2 + SCORE_VANISH_2, false);
+                    updateScore(SCORE_VANISH_1 * 2 + SCORE_VANISH_2, false);
                 } else if (flagMatch1 || flagMatch2 ) {
                     // 1個だけ
                     mVanishCount += 1;
-                    changeScore(SCORE_VANISH_1, false);
+                    updateScore(SCORE_VANISH_1, false);
                 }
 
                 //Log.d("check","mAnimeDirection="+mAnimeDirection
@@ -461,7 +468,7 @@ public class MainActivity extends AppCompatActivity {
                     boolean flagClear = checkStageClear();
                     // ステージクリアしたら、次へボタンを表示
                     if (flagClear) {
-                        changeScore(SCORE_CLEAR + (mStageNumber-1) * 2, false);
+                        updateScore(SCORE_CLEAR + (mStageNumber-1) * 2, false);
                         mBtnNextStage.setVisibility(View.VISIBLE);
                     }
                 }
@@ -668,7 +675,7 @@ public class MainActivity extends AppCompatActivity {
             mAnimeDestCenterX = cvLeft + cv.getWidth() / 2;
             mAnimeDestCenterY = cvTop + cv.getHeight() / 2;
             // 1マス移動してまだ移動中。スコアを減らす、移動数を増やす
-            changeScore(-1, true);
+            updateScore(-1, true);
             //Log.d("score","move next. score update");
 
             //Log.d("onScroll", "src: "+mAnimeSrcIndex+" dest: "+mAnimeDestIndex);
@@ -770,7 +777,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     destImageView.setVisibility(View.VISIBLE);
                     //// 移動終了。スコアを減らす、移動数を増やす
-                    //changeScore(-1, true);
+                    //updateScore(-1, true);
                     //Log.d("score","move end. score update");
 
                     super.onAnimationEnd(animation);
@@ -946,8 +953,8 @@ public class MainActivity extends AppCompatActivity {
         return targetCode;
     }
 
+    // 模様の成立した4パネルの該当部位の画像コード及び画像を消去する
     private boolean vanishMatch(int part) {
-
         // チェック対象をクラスで生成
         Positions positions = new Positions(part);
         // ポジションが取得できなかったら不成立
@@ -964,7 +971,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    // 指定位置の画像コードをtargetCodeで更新し、
+    // 指定部位の画像コードをtargetCodeで更新し、
     // CustomViewの画像を更新する
     //課題: 消す場合は、SELECT_NONEでないコードと画像を設定するべき？
     @SuppressLint("ResourceAsColor")
@@ -1065,37 +1072,10 @@ public class MainActivity extends AppCompatActivity {
         canvas.drawBitmap(bitmapWork2,
                 bitmapLeft, bitmapTop, (Paint) null);
 
-//        Bitmap bitmapWork1;
-//        Bitmap bitmapWork2;
-//        int resId;
-//        for (int j = 0; j < 2; j++) {
-//            for (int i = 0; i < 2; i++) {
-//                int BitmapId = i + j * 2;
-//                if (aryImgRes[k][BitmapId] != SELECT_NONE) {
-//                    // コードをリソースIDへ変換
-//                    resId = c2r.getResID(aryImgRes[k][BitmapId]);
-//                    // Bitmapをリソースから読み込む
-//                    bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
-//                    // サイズ補正（AccBall参照）
-//                    bitmapWork2 = Bitmap.createScaledBitmap(bitmapWork1,
-//                            viewWidthHalf, viewHeightHalf, false);
-//                    // View上に描画
-//                    canvas.drawBitmap(bitmapWork2,
-//                            viewWidthHalf * i, viewHeightHalf * j, (Paint)null);
-//                }
-//            }
-//        }
-
         // 該当CustomViewへ画像を設置
-        //CustomView destImageView = mImagePieces.get(aryImgRes[k][4]);
         CustomView destImageView = mImagePieces.get(targetViewIndex);
-        //destImageView.setImageBitmap(bitmapBase);
-        //destImageView.setImageBitmap(bitmapWork2);
         destImageView.setImageBitmap(mBitmapList.get(targetResID));
-        //destImageView.setResID(k);
-        //destImageView.setVisibility(View.VISIBLE);
-        //mBitmapList.add(bitmapBase);
-        //mBitmapList.set(targetResID,bitmapWork2); // 置き換え
+
         // 画像初期設定をコピーして加工（ここまで）
 
         return targetCode;
@@ -1119,19 +1099,6 @@ public class MainActivity extends AppCompatActivity {
 
         // onPauseではsuperより前に追記した方が良いとのこと（ホサカさん）
         super.onPause();
-        /*
-        if (mThread != null) {
-            while(mThread.isAlive()) {
-                try {
-                    Thread.sleep(200);
-                }
-                catch (Exception e) {
-                }
-            }
-        }
-        isAttached = false;
-        mThread = null; //スレッドを終了
-        */
     }
 
     // アクティビティ終了時
@@ -1169,7 +1136,7 @@ public class MainActivity extends AppCompatActivity {
 
     // スコア更新
     @SuppressLint("DefaultLocale")
-    void changeScore(int score, boolean flagMove) {
+    void updateScore(int score, boolean flagMove) {
         if (flagMove) {
             mMoveCount++;
             // さばいばるの場合は一定回数移動したら部位をランダム追加
