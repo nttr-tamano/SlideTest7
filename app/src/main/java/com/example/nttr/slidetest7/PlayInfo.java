@@ -1,5 +1,6 @@
 package com.example.nttr.slidetest7;
 
+import java.util.ArrayList;
 import java.util.Date;
 
 import io.realm.annotations.PrimaryKey;
@@ -17,20 +18,21 @@ public class PlayInfo {
 
     // 概ねMainActivity上の出現順
     public int pieceX;      // 横方向のパネル数
-    public int pieceY;      // 縦方向のパネル数(当面はpieceXと同じ値)
+    public int pieceY;      // 縦方向のパネル数(当面はpieceXと同値とする。異なる場合、各マスが長方形になる)
     public int mode;        // モード
 
-    public int stageNumber; // ステージ番号
+    public int stageNumber = 0;     // ステージ番号。初期値は0。loadNewStage()を呼ぶと1以上になる
 
-    public int moveCount;
-    public int vanishCount;
-    public int vanishMultiCount;
-    public int score;
+    public int moveCount = 0;           // いどう
+    public int vanishCount = 0;         // けし
+    public int vanishMultiCount = 0;    // 同時けし(非表示)
+    public int score = 0;               // すこあ
 
-    public int aryImgRes[][];
-    // 各模様の現在位置の更新必要
-    // 水色(無い)とピンク(消した)の識別。コード変更が必要？
+    public int aryImgRes[][];           // 各部位の色と初期位置(但し模様ありのみ)
 
-    // 最新のパネルの位置はどこで持つ？
+    // 各パネルの模様のID(aryImgResの第1引数)
+    public ArrayList<Integer> imagePieceResID = new ArrayList<>();
+
+    // 水色(無い)とピンク(消した)の識別。コード(SELECT_NONE2)追加で対応
 
 }
