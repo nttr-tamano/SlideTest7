@@ -2,7 +2,7 @@ package com.example.nttr.slidetest7;
 
 import java.util.ArrayList;
 import java.util.Date;
-
+import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;
 
 /**
@@ -11,7 +11,7 @@ import io.realm.annotations.PrimaryKey;
  * １操作毎に保存すれば、いつでも再開できそう！？
  */
 
-public class PlayInfo {
+public class PlayInfo extends RealmObject {
     @PrimaryKey
     public long id;         // 重複登録禁止のためのID
     public Date date;       // 保存日時 or ステージ開始日時
@@ -28,10 +28,14 @@ public class PlayInfo {
     public int vanishMultiCount = 0;    // 同時けし(非表示)
     public int score = 0;               // すこあ
 
-    public int aryImgRes[][];           // 各部位の色と初期位置(但し模様ありのみ)
+    // Realmのフィールドに配列、リストは使えない
+    // http://grandbig.github.io/blog/2015/06/20/android-realm/
+    // デシリアライザ
+    // https://qiita.com/Koganes/items/1ab28bf31a49f0cf7dac
+    //public int aryImgRes[][];           // 各部位の色と初期位置(但し模様ありのみ)
 
     // 各パネルの模様のID(aryImgResの第1引数)
-    public ArrayList<Integer> imagePieceResID = new ArrayList<>();
+    public ArrayList<Integer> imageResources = new ArrayList<>();
 
     // 水色(無い)とピンク(消した)の識別。コード(SELECT_NONE2)追加で対応
 
