@@ -27,12 +27,17 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Random;
 
 import io.realm.Realm;
+import io.realm.RealmConfiguration;
+import io.realm.RealmResults;
 
 public class MainActivity extends AppCompatActivity {
         //implements SurfaceHolder.Callback,Runnable { //implements View.OnTouchListener {
@@ -54,7 +59,10 @@ public class MainActivity extends AppCompatActivity {
     //private int mMode = 0;
 
     // ステージ管理系
-    PlayInfo mPlayInfo = new PlayInfo();    // プレイ中の全データを持つクラス(ほぼ構造体)
+    // Realm
+    Realm mRealm;
+    // ステージを構成する全情報
+    PlayInfo mPlayInfo;    // プレイ中の全データを持ち、Realmへ格納可能なクラス(ほぼ構造体)
     //private int mStageNumber = 0; // 初期値は0。loadNewStageを呼ぶと1以上になる
     Button mBtnNextStage;   // 次へボタン
     boolean flagFinalStage = false;
@@ -114,25 +122,25 @@ public class MainActivity extends AppCompatActivity {
     private int mBackgroundColor = R.color.skyblue;
     private int mVanishColor = R.color.lightpink;
 
-    // 4分割の部位の添え字(mPlayInfo.aryImgRes[][]の第2要素の添え字の一部
+    // 4分割の部位の添え字(aryImgRes[][]の第2要素の添え字の一部
     private final int PART_UL = 0; // 左上
     private final int PART_UR = 1; // 右上
     private final int PART_LL = 2; // 左下
     private final int PART_LR = 3; // 右下
 
     // コード値の組と、初期配置先CustomViewの添え字
-    //int aryImgRes[][];
+    int aryImgRes[][];
 
-    // コード値をリソースIDへ変換する定数配列っぽいクラス
+    // コード値をリソースIdへ変換する定数配列っぽいクラス
     private CodeToResource c2r = new CodeToResource();
     // CustomViewやValueAnimatorで表示する画像の配列
     ArrayList<Bitmap> mBitmapList = new ArrayList<>();
-    int mBitmapID = SELECT_NONE;
+    int mBitmapId = SELECT_NONE;
     boolean flagSetBitmap = false;  // 処理を1回だけ実行するためのフラグ
 
     int mAnimeDirection = DIRECTION_NONE;    // アニメーション方向
-    int mAnimeSrcIndex = SELECT_NONE;        // アニメーションの移動元のID
-    int mAnimeDestIndex = SELECT_NONE;       // アニメーションの移動先のID
+    int mAnimeSrcIndex = SELECT_NONE;        // アニメーションの移動元のId
+    int mAnimeDestIndex = SELECT_NONE;       // アニメーションの移動先のId
 
     int mAnimeSrcCenterX = 0;
     int mAnimeSrcCenterY = 0;
@@ -147,8 +155,6 @@ public class MainActivity extends AppCompatActivity {
     //final int ANIME_FRAME = 12;
     //final int ANIME_WAIT_MSEC = 300; // msec
 
-    // Realm
-    Realm mRealm;
     // 中断の管理
     static final int RETURN_YES = 1;
     static final int RETURN_NO  = 2;
@@ -161,12 +167,31 @@ public class MainActivity extends AppCompatActivity {
         // Realm使用開始
         mRealm = Realm.getDefaultInstance();
 
+        // 起動時にDB消去
+        // http://y-yagi.tumblr.com/post/123236341530/realm-for-android-%E3%81%A7db%E3%82%92%E5%89%8A%E9%99%A4%E3%81%99%E3%82%8B
+//        RealmConfiguration realmConfig = new RealmConfiguration.Builder(this).build();
+//        Realm.deleteRealm(realmConfig);
+//        Realm realm = Realm.getInstance(realmConfig);
+
+        // debug 格納済データのログ出力
+        RealmResults<PlayInfo> results = mRealm.where(PlayInfo.class).findAll();
+        for (PlayInfo result:
+                results) {
+            Log.d("ReadFromRealm",result.toString());
+        }
+
+        // Realmへ格納するクラスを準備
+        // mPlayInfoは1レコードしか持てないので主キー固定
+        //mPlayInfo = mRealm.createObject(PlayInfo.class,0);
+        mPlayInfo = new PlayInfo();
+        mPlayInfo.id = 0; // 主キー
+
         // アクティビティの引数チェック
         mIntent = getIntent();
         int pieceX = mIntent.getIntExtra("PieceX", 4);
         int pieceY = mIntent.getIntExtra("PieceY", mPlayInfo.pieceX);
         // 指定可能な最低値以上へ補正
-        mPlayInfo.pieceX= Math.max(pieceX, 3);
+        mPlayInfo.pieceX = Math.max(pieceX, 3);
         mPlayInfo.pieceY = Math.max(pieceY, 3);
         
         mPlayInfo.mode = mIntent.getIntExtra("Mode", 0);
@@ -175,10 +200,11 @@ public class MainActivity extends AppCompatActivity {
         AssetManager asset = getAssets();
         String fontName = getString(R.string.custom_font_name);
 
-        // スコア表示
+        // スコア
         textScore = (TextView) findViewById(R.id.textScore);
         textScore.setTypeface(Typeface.createFromAsset(asset, fontName));
 
+        // 説明文
         textExplain = (TextView) findViewById(R.id.textExplain);
         textExplain.setTypeface(Typeface.createFromAsset(asset, fontName));
 
@@ -371,7 +397,7 @@ public class MainActivity extends AppCompatActivity {
                 if (flagAnimeReady == false) {
                     break;
                 }
-                //Log.d("tapup","mAnimeSrcIndex="+mAnimeSrcIndex+",mAnimeDestIndex="+mAnimeDestIndex);
+                //Log.d("TapUp","mAnimeSrcIndex="+mAnimeSrcIndex+",mAnimeDestIndex="+mAnimeDestIndex);
 
                 // 移動先がない場合は何もしない（何もできない）
                 if (mAnimeDestIndex <= SELECT_NONE) {
@@ -381,10 +407,10 @@ public class MainActivity extends AppCompatActivity {
 
                 final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
                 // 模様の成立チェック
-                int resID = destImageView.getResID();
+                int resId = destImageView.getResId();
                 // 連続アニメーション可能にしたため、うまくいかないときがあるのを回避
                 // 厳密にはテストできていない
-                if (resID <= SELECT_NONE) {
+                if (resId <= SELECT_NONE) {
                     flagAnimeReady = false;
                     break;
                 }
@@ -397,8 +423,8 @@ public class MainActivity extends AppCompatActivity {
                 switch (mAnimeDirection) {
                     case DIRECTION_TOP:
                         // 左上、右上
-                        flagMatch1 = checkMatch(resID,PART_UL);
-                        flagMatch2 = checkMatch(resID,PART_UR);
+                        flagMatch1 = checkMatch(resId,PART_UL);
+                        flagMatch2 = checkMatch(resId,PART_UR);
 
                         // 消去
                         if (flagMatch1) {
@@ -410,8 +436,8 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     case DIRECTION_LEFT:
                         // 左上、左下
-                        flagMatch1 = checkMatch(resID,PART_UL);
-                        flagMatch2 = checkMatch(resID,PART_LL);
+                        flagMatch1 = checkMatch(resId,PART_UL);
+                        flagMatch2 = checkMatch(resId,PART_LL);
 
                         // 消去
                         if (flagMatch1) {
@@ -424,8 +450,8 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     case DIRECTION_RIGHT:
                         // 右上、右下
-                        flagMatch1 = checkMatch(resID,PART_UR);
-                        flagMatch2 = checkMatch(resID,PART_LR);
+                        flagMatch1 = checkMatch(resId,PART_UR);
+                        flagMatch2 = checkMatch(resId,PART_LR);
 
                         // 消去
                         if (flagMatch1) {
@@ -437,8 +463,8 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     case DIRECTION_BOTTOM:
                         // 左下、右下
-                        flagMatch1 = checkMatch(resID,PART_LL);
-                        flagMatch2 = checkMatch(resID,PART_LR);
+                        flagMatch1 = checkMatch(resId,PART_LL);
+                        flagMatch2 = checkMatch(resId,PART_LR);
 
                         // 消去
                         if (flagMatch1) {
@@ -498,7 +524,7 @@ public class MainActivity extends AppCompatActivity {
     private final GestureDetector.SimpleOnGestureListener mOnGestureListener
              = new GestureDetector.SimpleOnGestureListener() {
 
-        // タップ位置＝アニメーション開始位置のCustomViewのIDを記録
+        // タップ位置＝アニメーション開始位置のCustomViewのIdを記録
         @Override
         public boolean onDown(MotionEvent event) {
             int flungViewIndex = SELECT_NONE;
@@ -620,7 +646,7 @@ public class MainActivity extends AppCompatActivity {
                 return super.onScroll(event1, event2, distanceX, distanceY);
             }
 
-            // 移動先のIDの取得を試みる
+            // 移動先のIdの取得を試みる
             int destViewIndex = getDestViewIndex(mAnimeSrcIndex, direction, true);
             // 移動不可の場合、SELECT_NONEが返るのでアニメーションしない
             if (destViewIndex <= SELECT_NONE) {
@@ -697,11 +723,11 @@ public class MainActivity extends AppCompatActivity {
 
             // 移動元の画像の取得
             CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
-            mBitmapID = srcImageView.getResID();
-            if (mBitmapID <= SELECT_NONE) {
+            mBitmapId = srcImageView.getResId();
+            if (mBitmapId <= SELECT_NONE) {
                 return false;
             }
-            mBitmap = mBitmapList.get(mBitmapID);
+            mBitmap = mBitmapList.get(mBitmapId);
 
             // 描画開始位置
             int srcX = srcImageView.getLeft();
@@ -755,12 +781,12 @@ public class MainActivity extends AppCompatActivity {
                     // 移動元ImageViewの画像を非表示にする
                     final CustomView srcImageView = mImagePieces.get(mAnimeSrcIndex);
                     srcImageView.setVisibility(View.INVISIBLE);
-                    srcImageView.setResID(SELECT_NONE);
+                    srcImageView.setResId(SELECT_NONE);
 
                     // 移動先ImageViewに画像を書き込む
                     final CustomView destImageView = mImagePieces.get(mAnimeDestIndex);
                     destImageView.setImageBitmap(mBitmap);
-                    destImageView.setResID(mBitmapID);
+                    destImageView.setResId(mBitmapId);
 
                     // 配列のデバッグ出力
                     // http://akisute3.hatenablog.com/entry/20120204/1328346655
@@ -874,11 +900,11 @@ public class MainActivity extends AppCompatActivity {
         //boolean flagClear = true; // クリアしている(可能性がある)=true、いない=false(今のところ不要)
         // 2次元配列のforeach
         // https://teratail.com/questions/39814
-        for (int[] imgRes: mPlayInfo.aryImgRes) {     // forjループにするよりは添え字表記が減っている
+        for (int[] imgRes: aryImgRes) {     // forjループにするよりは添え字表記が減っている
             for (int i = 0; i < 4; i++) {   // 当面は4つマッチとする。5つ目を使わないためforeach不可
                 // まだマッチさせていない箇所があれば、クリアしていない
                 if (imgRes[i] > SELECT_NONE) {
-                    Log.d("checkStageClear",Arrays.deepToString(mPlayInfo.aryImgRes));
+                    Log.d("checkStageClear",Arrays.deepToString(aryImgRes));
                     return false;
                 }
             }
@@ -888,8 +914,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // 模様の成立をチェックする
-    private boolean checkMatch(int resID, int part) {
-        int code = mPlayInfo.aryImgRes[resID][part];
+    private boolean checkMatch(int resId, int part) {
+        int code = aryImgRes[resId][part];
         // 配列の宣言と初期化を別々に行う
         // http://blog.goo.ne.jp/xypenguin/e/e1cfcc0b1a8c3acdbe023bbef8944dac
         //int[] directions = null;    // = new int[3];
@@ -907,7 +933,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 基準位置のコードを取得
         int codeGroup = code / 4; // 当面は4つマッチとする
-        //Log.d("check","resID="+resID+",code="+code);
+        //Log.d("check","resId"+resId+",code="+code);
 
         // SELECT_NONEでなければ、周辺のコードを取得
         if (code > SELECT_NONE) {
@@ -936,22 +962,22 @@ public class MainActivity extends AppCompatActivity {
     // 周辺の指定位置の画像コードを返す
     private int getAroundCode(int srcViewIndex,int direction,int part) {
         int targetViewIndex;
-        int targetResID;
+        int targetResId;
         int targetCode;
-        // srcViewIndexのCustomViewから見て、direction方向にあるCustomViewのIDを取得
+        // srcViewIndexのCustomViewから見て、direction方向にあるCustomViewのIdを取得
         targetViewIndex = getDestViewIndex(srcViewIndex,direction,false);
         if (targetViewIndex <= SELECT_NONE) {
             //Log.d("getAroundCode","targetViewIndex=SELECT_NONE");
             return SELECT_NONE;
         }
-        // CustomViewの保持する画像リソースIDを取得
-        targetResID = mImagePieces.get(targetViewIndex).getResID();
-        if (targetResID <= SELECT_NONE) {
-            //Log.d("getAroundCode","targetResID=SELECT_NONE");
+        // CustomViewの保持する画像リソースIdを取得
+        targetResId = mImagePieces.get(targetViewIndex).getResId();
+        if (targetResId <= SELECT_NONE) {
+            //Log.d("getAroundCode","targetResId=SELECT_NONE");
             return SELECT_NONE;
         }
         // 画像リソースの部位のコードを取得
-        targetCode = mPlayInfo.aryImgRes[targetResID][part];
+        targetCode = aryImgRes[targetResId][part];
         return targetCode;
     }
 
@@ -979,14 +1005,14 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("ResourceAsColor")
     private int updateImagePart(int srcViewIndex, int direction, int part, int targetCode) {
         int targetViewIndex;
-        int targetResID;
+        int targetResId;
         //int targetCode;
-        // srcViewIndexのCustomViewから見て、direction方向にあるCustomViewのIDを取得
+        // srcViewIndexのCustomViewから見て、direction方向にあるCustomViewのIdを取得
         if (direction == DIRECTION_NONE) {
             // 方向なしは、引数自身
             targetViewIndex = srcViewIndex;
         } else {
-            // 指定された方向から、IDを探す
+            // 指定された方向から、Idを探す
             targetViewIndex = getDestViewIndex(srcViewIndex, direction, false);
         }
         // 見つからなかったら終了
@@ -994,16 +1020,16 @@ public class MainActivity extends AppCompatActivity {
             //Log.d("getAroundCode","targetViewIndex=SELECT_NONE");
             return SELECT_NONE;
         }
-        // CustomViewの保持する画像リソースIDを取得
-        targetResID = mImagePieces.get(targetViewIndex).getResID();
-        if (targetResID <= SELECT_NONE) {
-            //Log.d("getAroundCode","targetResID=SELECT_NONE");
+        // CustomViewの保持する画像リソースIdを取得
+        targetResId = mImagePieces.get(targetViewIndex).getResId();
+        if (targetResId <= SELECT_NONE) {
+            //Log.d("getAroundCode","targetResId=SELECT_NONE");
             return SELECT_NONE;
         }
         // 画像リソースのpart位置のコードを書き換える
-        mPlayInfo.aryImgRes[targetResID][part] = targetCode;
+        aryImgRes[targetResId][part] = targetCode;
 
-        Log.d("vanish","targetResID="+targetResID);
+        Log.d("vanish","targetResId="+ targetResId);
 
         // 画像初期設定をコピーして加工（ここから）
 
@@ -1049,14 +1075,14 @@ public class MainActivity extends AppCompatActivity {
         //Bitmap bitmapBase = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
         //Canvas canvas = new Canvas(bitmapBase);
         //canvas.drawColor(mBackgroundColor); // 背景色を指定
-        Canvas canvas = new Canvas(mBitmapList.get(targetResID));
+        Canvas canvas = new Canvas(mBitmapList.get(targetResId));
 
-        // コードをリソースIDへ変換
-        int resId = c2r.getResID(mPlayInfo.aryImgRes[targetResID][part]);
+        // コードをリソースIdへ変換
+        int resId = c2r.getResId(aryImgRes[targetResId][part]);
         // Bitmapをリソースから読み込む
         Bitmap bitmapWork1;
         Bitmap bitmapWork2;
-        if (mPlayInfo.aryImgRes[targetResID][part] > SELECT_NONE) {
+        if (aryImgRes[targetResId][part] > SELECT_NONE) {
             // 画像あり
             bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
             // サイズ補正（AccBall参照）
@@ -1076,7 +1102,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 該当CustomViewへ画像を設置
         CustomView destImageView = mImagePieces.get(targetViewIndex);
-        destImageView.setImageBitmap(mBitmapList.get(targetResID));
+        destImageView.setImageBitmap(mBitmapList.get(targetResId));
 
         // 画像初期設定をコピーして加工（ここまで）
 
@@ -1106,9 +1132,13 @@ public class MainActivity extends AppCompatActivity {
     // アクティビティ終了時
     @Override
     protected void onDestroy() {
-        // TitleActivityに返す。返すパラメータを変えるかも
-        setResult(RESULT_CANCELED, mIntent);
-        finish();
+        //ここは不要？
+        // // TitleActivityに返す。返すパラメータを変えるかも
+        //setResult(RESULT_CANCELED, mIntent);
+        //finish();
+
+        // Realm終了
+        mRealm.close();
         super.onDestroy();
     }
 
@@ -1116,12 +1146,66 @@ public class MainActivity extends AppCompatActivity {
     // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
     public void onReturnValue(int value) {
         if (value == RETURN_YES) {
-            //TODO 中断処理
+            //TODO アプリ中断処理
+            savePlayInfo();
 
             // TitleActivityに返す。返すパラメータを変えるかも
             setResult(RESULT_CANCELED, mIntent);
             finish();
         }
+    }
+
+    // ステージの状態をRealmへ保存する
+    public void savePlayInfo() {
+        // 保存する中断データ(ステージの状態)は1つだけとする
+        // 既存の全レコードを取得し、削除する
+        mRealm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                // 全レコード取得、リスト化
+                RealmResults<PlayInfo> playInfos
+                        = realm.where(PlayInfo.class).findAll();
+
+                // 削除
+                for (PlayInfo playInfo:
+                        playInfos) {
+                    // 1レコード削除
+                    playInfo.deleteFromRealm();
+                }
+            }
+        });
+
+        // 各パネル上の模様(resId)の抽出
+        ArrayList<Integer> resIdList = new ArrayList<>();
+        int panelMax = mImagePieces.size();
+        for (int i = 0; i < panelMax; i++) {
+            int resId = mImagePieces.get(i).getResId();
+            resIdList.add(resId);
+        }
+
+        // シリアライザ
+        Gson gson = new Gson();
+        // Integer型 ArrayList
+        mPlayInfo.jsonResIdList = gson.toJson(resIdList);
+        Log.d("gson-java", resIdList.toString());
+        Log.d("Gson-JSON", "mPlayInfo.jsonResIdList="+mPlayInfo.jsonResIdList);
+
+        // 参考(ArrayListに戻す場合)
+        // https://qiita.com/hisurga/items/a02436e03ea2aba6c6db
+
+        // int型 2次元配列
+        mPlayInfo.jsonAryImgRes = gson.toJson(aryImgRes);
+        Log.d("gson-java", Arrays.deepToString(aryImgRes));
+        Log.d("Gson-JSON", "mPlayInfo.jsonAryImgRes="+mPlayInfo.jsonAryImgRes);
+
+        mPlayInfo.date = new Date();
+
+        // Realmへ登録(ScheduleBookとは異なる)
+        // https://qiita.com/roana0229/items/e641da94ab4ebad46b4c
+        mRealm.beginTransaction();
+        mRealm.copyToRealm(mPlayInfo);
+        mRealm.commitTransaction();
+
     }
 
     @Override
@@ -1160,7 +1244,7 @@ public class MainActivity extends AppCompatActivity {
                 mPlayInfo.score, getString(R.string.text_score))));
     }
 
-    // フリックの開始位置にあるCustomViewのIDを取得
+    // フリックの開始位置にあるCustomViewのIdを取得
     private int getViewIndex(float flingX, float flingY) {
         int index = SELECT_NONE;
         //final int padding = 0;
@@ -1201,8 +1285,8 @@ public class MainActivity extends AppCompatActivity {
         return index;
     }
 
-    // フリックによる移動先のCustomViewのIDを取得(無いかもしれない) (flagMove=true)
-    // あるいは、単に指定方向のCustomViewのIDを取得(無いかもしれない) (flagMove=false)
+    // フリックによる移動先のCustomViewのIdを取得(無いかもしれない) (flagMove=true)
+    // あるいは、単に指定方向のCustomViewのIdを取得(無いかもしれない) (flagMove=false)
     private int getDestViewIndex(int srcIndex,int direction, boolean flagMove) {
 
         int destIndex = SELECT_NONE;
@@ -1327,7 +1411,7 @@ public class MainActivity extends AppCompatActivity {
     void loadNewStage() {
         // 各パネルの画像情報のクリア
         for (CustomView cv: mImagePieces) {
-            cv.setResID(SELECT_NONE);
+            cv.setResId(SELECT_NONE);
             cv.setVisibility(View.INVISIBLE);
         }
         // ビットマップリストのクリア
@@ -1358,7 +1442,7 @@ public class MainActivity extends AppCompatActivity {
                 // ランダムステージ
 
 //                // アイコン用 3x3 で 2模様
-//                mPlayInfo.aryImgRes = new int[][]{
+//                aryImgRes = new int[][]{
 //                        {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 1},
 //                        {          4, SELECT_NONE, SELECT_NONE,           3, 3},
 //                        {SELECT_NONE,           5,           2, SELECT_NONE, 5},
@@ -1438,7 +1522,7 @@ public class MainActivity extends AppCompatActivity {
         // https://www.javadrive.jp/start/array/index9.html
         // imgRes.length は、2次元配列の第1要素の長さ
         // imgRes[0].length は、2次元配列の1個目の要素の第2要素の長さ
-        for (int k = 0; k < mPlayInfo.aryImgRes.length; k++) {
+        for (int k = 0; k < aryImgRes.length; k++) {
             Bitmap bitmapBase = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bitmapBase);
             canvas.drawColor(resources.getColor(mBackgroundColor)); // 背景色を指定
@@ -1448,12 +1532,12 @@ public class MainActivity extends AppCompatActivity {
             int resId;
             for (int j = 0; j < 2; j++) {
                 for (int i = 0; i < 2; i++) {
-                    int PartID = i + j * 2;
-                    if (mPlayInfo.aryImgRes[k][PartID] > SELECT_NONE) {
-                        // コードをリソースIDへ変換
-                        resId = c2r.getResID(mPlayInfo.aryImgRes[k][PartID]);
+                    int partId = i + j * 2;
+                    if (aryImgRes[k][partId] > SELECT_NONE) {
+                        // コードをリソースIdへ変換
+                        resId = c2r.getResId(aryImgRes[k][partId]);
                         // 180216: ステージ生成時にぬるぽで異常終了があり、以下でdebugした
-                        //Log.d("loadNewStage","resId="+resId+",aryImageRes[k="+k+"][BitmapId="+BitmapId+"]="+mPlayInfo.aryImgRes[k][BitmapId]);
+                        //Log.d("loadNewStage","resId="+resId+",aryImageRes[k="+k+"][BitmapId="+BitmapId+"]="+aryImgRes[k][BitmapId]);
 
                         // Bitmapをリソースから読み込む
                         bitmapWork1 = BitmapFactory.decodeResource(resources, resId);
@@ -1468,9 +1552,9 @@ public class MainActivity extends AppCompatActivity {
             }
 
             // 該当CustomViewへ画像を設置
-            CustomView destImageView = mImagePieces.get(mPlayInfo.aryImgRes[k][4]);
+            CustomView destImageView = mImagePieces.get(aryImgRes[k][4]);
             destImageView.setImageBitmap(bitmapBase);
-            destImageView.setResID(k);
+            destImageView.setResId(k);
             destImageView.setVisibility(View.VISIBLE);
             //TODO:
             mBitmapList.add(bitmapBase);
@@ -1483,7 +1567,7 @@ public class MainActivity extends AppCompatActivity {
         switch (mPlayInfo.stageNumber) {
             case 1:
                 // 1個
-                mPlayInfo.aryImgRes = new int[][]{
+                aryImgRes = new int[][]{
                         {SELECT_NONE, SELECT_NONE, SELECT_NONE,           3, 4},
                         {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 7},
                         {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE, 8},
@@ -1493,7 +1577,7 @@ public class MainActivity extends AppCompatActivity {
 
             case 2:
                 // 1個、バラバラ
-                mPlayInfo.aryImgRes = new int[][]{
+                aryImgRes = new int[][]{
                         {SELECT_NONE, SELECT_NONE, SELECT_NONE,           3, 0},
                         {SELECT_NONE, SELECT_NONE,           2, SELECT_NONE, 3},
                         {SELECT_NONE,           1, SELECT_NONE, SELECT_NONE,12},
@@ -1503,7 +1587,7 @@ public class MainActivity extends AppCompatActivity {
 
             case 3:
                 // 上下2個、まとめ消し
-                mPlayInfo.aryImgRes = new int[][]{
+                aryImgRes = new int[][]{
                         {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
                         {SELECT_NONE, SELECT_NONE,           6, SELECT_NONE, 1},
                         {SELECT_NONE,           5, SELECT_NONE,           3, 4},
@@ -1515,7 +1599,7 @@ public class MainActivity extends AppCompatActivity {
 
             case 4:
                 // 左右2個、まとめ消し
-                mPlayInfo.aryImgRes = new int[][]{
+                aryImgRes = new int[][]{
                         {SELECT_NONE, SELECT_NONE, SELECT_NONE,           7, 0},
                         {SELECT_NONE, SELECT_NONE,           6,           3, 1},
                         {SELECT_NONE,           5, SELECT_NONE, SELECT_NONE, 4},
@@ -1527,7 +1611,7 @@ public class MainActivity extends AppCompatActivity {
 
             case 5:
                 // 左右2個+2個 // ステージ4用
-                mPlayInfo.aryImgRes = new int[][]{
+                aryImgRes = new int[][]{
                         {         12, SELECT_NONE, SELECT_NONE,           7, 4},
                         {          8,          13,           6,           3, 5},
                         {SELECT_NONE,           5, SELECT_NONE,          11, 8},
@@ -1539,7 +1623,7 @@ public class MainActivity extends AppCompatActivity {
 
             case 6:
                 // 同じ模様が複数、を2セット
-                mPlayInfo.aryImgRes = new int[][]{
+                aryImgRes = new int[][]{
                         {          0,           1,           2,           3, 0},
                         {          0,           1,           2,           3, 2},
                         {          0,           1,           2,           3, 4},
@@ -1553,7 +1637,7 @@ public class MainActivity extends AppCompatActivity {
 
             case 7:
                 // 6個(模様の列挙1)
-                mPlayInfo.aryImgRes = new int[][]{
+                aryImgRes = new int[][]{
                         {         12,          17, SELECT_NONE,           7, 0},
                         {          8,          13,           6,           3, 1},
                         {         16,           5,          22,          11, 4},
@@ -1565,7 +1649,7 @@ public class MainActivity extends AppCompatActivity {
 
             case 8:
                 // 6個(模様の列挙2)
-                mPlayInfo.aryImgRes = new int[][]{
+                aryImgRes = new int[][]{
                         {         44, SELECT_NONE,          42,          27, 1},
                         {         40, SELECT_NONE,          26, SELECT_NONE, 3},
                         {SELECT_NONE,          25,          38,          31, 4},
@@ -1605,19 +1689,20 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // 全要素を初期化
-        mPlayInfo.aryImgRes = new int[panelNumber][(partNumber+1)];
-        for (int[] imgRes: mPlayInfo.aryImgRes) {
+        aryImgRes = new int[panelNumber][(partNumber+1)];
+        for (int[] imgRes: aryImgRes) {
             Arrays.fill(imgRes, SELECT_NONE);
         }
 
-        // パネルID
+        // パネルをランダムに並べた配列
         int[] panels = c2r.getRandomPermutations(mPlayInfo.pieceX * mPlayInfo.pieceY - 1, panelNumber);
+        // 部位をランダムに並べた配列
         int[] parts  = c2r.getRandomPermutations(partNumber, partNumber);
 
         Log.d("random","pieces[]="+Arrays.toString(panels));
         Log.d("random","pieces[]="+Arrays.toString(parts));
 
-        // 各模様のIDをランダム値にして該当位置の配列要素へ代入
+        // 各模様のIdをランダム値にして該当位置の配列要素へ代入
         // 部位毎に処理
         ArrayList<Integer> patterns = c2r.getRandomPermutationsPadding(panelNumber, patternNumber);
         for (int j = 0; j < partNumber; j++) {
@@ -1625,7 +1710,7 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < panelNumber; i++) {
                 int pattern = patterns.get(i);
                 if (pattern > SELECT_NONE) {
-                    mPlayInfo.aryImgRes[i][parts[j]] = pattern * partNumber + parts[j];
+                    aryImgRes[i][parts[j]] = pattern * partNumber + parts[j];
                 }
             }
             // リストの先頭の要素を末尾へ(1ずらす)→重複
@@ -1634,14 +1719,13 @@ public class MainActivity extends AppCompatActivity {
             patterns.add(pattern);          // 先頭の要素を末尾へ追加
         }
         // パネル設置位置
-        int j = partNumber;
         for (int i = 0; i < panelNumber; i++) {
-            mPlayInfo.aryImgRes[i][j] = panels[i];
+            aryImgRes[i][partNumber] = panels[i];
         }
 
         // debug 2次元配列の出力
         // https://teratail.com/questions/533
-        Log.d("random",Arrays.deepToString(mPlayInfo.aryImgRes));
+        Log.d("random",Arrays.deepToString(aryImgRes));
 
     }
 
@@ -1660,12 +1744,12 @@ public class MainActivity extends AppCompatActivity {
         initializePartList(patternNumber);
 
         // 全要素を初期化
-        mPlayInfo.aryImgRes = new int[panelNumber][(partNumber + 1)];
-        for (int[] imgRes : mPlayInfo.aryImgRes) {
+        aryImgRes = new int[panelNumber][(partNumber + 1)];
+        for (int[] imgRes : aryImgRes) {
             Arrays.fill(imgRes, SELECT_NONE);
         }
 
-        // パネルID
+        // パネルをランダムに並べた配列
         int[] panels = c2r.getRandomPermutations(mPlayInfo.pieceX * mPlayInfo.pieceY - 1, panelNumber);
         //int[] parts = c2r.getRandomPermutations(partNumber, partNumber);
 
@@ -1685,20 +1769,20 @@ public class MainActivity extends AppCompatActivity {
             PatternParts pp = listPP.get(0);
             int pattern = pp.getPattern();
             int part = pp.getPart();
-            if ( mPlayInfo.aryImgRes[i][part] <= SELECT_NONE) {
-                mPlayInfo.aryImgRes[i][part] = pattern * partNumber + part;
+            if ( aryImgRes[i][part] <= SELECT_NONE) {
+                aryImgRes[i][part] = pattern * partNumber + part;
                 listPP.remove(0);
             }
         }
         // パネル設置位置
         int j = partNumber;
         for (int i = 0; i < panelNumber; i++) {
-            mPlayInfo.aryImgRes[i][j] = panels[i];
+            aryImgRes[i][j] = panels[i];
         }
 
         // debug 2次元配列の出力
         // https://teratail.com/questions/533
-        Log.d("random", Arrays.deepToString(mPlayInfo.aryImgRes));
+        Log.d("random", Arrays.deepToString(aryImgRes));
     }
 
     // さばいばる　部位リスト作成
@@ -1739,7 +1823,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 部位の追加数だけ繰り返す
         for (int j = 0; j < addNumber; j++) {
-            // パネルIDのランダムリスト
+            // パネルIdのランダムリスト
             int[] panels = c2r.getRandomPermutations(panelNumber, panelNumber);
 
             // 部位リストが空になったら再生成
@@ -1764,22 +1848,22 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 // 各部位をチェック
-                int resId = cv.getResID();
+                int resId = cv.getResId();
                 // すでに部位があればスキップ
-                if (mPlayInfo.aryImgRes[resId][part] > SELECT_NONE) {
+                if (aryImgRes[resId][part] > SELECT_NONE) {
                     continue;
                 }
 
                 // 部位を追加
-                //Log.d("addPart","OLD: mPlayInfo.aryImgRes[resId="+resId+"][part="+part+"]="+mPlayInfo.aryImgRes[resId][part]);
-                mPlayInfo.aryImgRes[resId][part] = pattern * partNumber + part;
+                //Log.d("addPart","OLD: aryImgRes[resId="+resId+"][part="+part+"]="+aryImgRes[resId][part]);
+                aryImgRes[resId][part] = pattern * partNumber + part;
                 addCount++;
                 flagAdd = true;
-                //Log.d("addPart","NEW: mPlayInfo.aryImgRes[resId="+resId+"][part="+part+"]="+mPlayInfo.aryImgRes[resId][part]);
+                //Log.d("addPart","NEW: aryImgRes[resId="+resId+"][part="+part+"]="+aryImgRes[resId][part]);
 
                 // 画面を更新
                 //180218 バグ。すでに模様のあるところに上書き発生を確認。要調査
-                updateImagePart(panels[i],DIRECTION_NONE,part,mPlayInfo.aryImgRes[resId][part]);
+                updateImagePart(panels[i],DIRECTION_NONE,part,aryImgRes[resId][part]);
                 break;
             }
             // 結果をlistPPへ反映
@@ -1797,6 +1881,6 @@ public class MainActivity extends AppCompatActivity {
         Log.d("addSurvivalParts",addCount+" parts added.");
         // debug 2次元配列の出力
         // https://teratail.com/questions/533
-        Log.d("random", Arrays.deepToString(mPlayInfo.aryImgRes));
+        Log.d("random", Arrays.deepToString(aryImgRes));
     }
 }

@@ -25,7 +25,7 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
 
     // 画像のリソース情報関連
     private final int SELECT_NONE = -1; // 未指定の値。配列の添え字となりえない数値であること
-    private int mResID = SELECT_NONE;   // 表示している画像のリソース配列の添え字
+    private int mResId = SELECT_NONE;   // 表示している画像のリソース配列の添え字
 
     // デフォルトコンストラクタ
     // http://www.atmarkit.co.jp/ait/articles/0912/17/news110_2.html
@@ -160,11 +160,11 @@ public class CustomView extends android.support.v7.widget.AppCompatImageView {
 //
 //    }
 
-    public int getResID() {
-        return mResID;
+    public int getResId() {
+        return mResId;
     }
 
-    public void setResID(int mResID) {
-        this.mResID = mResID;
+    public void setResId(int mResId) {
+        this.mResId = mResId;
     }
 }

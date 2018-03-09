@@ -10,80 +10,80 @@ import java.util.Collections;
 
 public class CodeToResource {
     final int SELECT_NONE = -1;
-    private ArrayList<Integer> aryResID = new ArrayList<>();
+    private ArrayList<Integer> aryResId = new ArrayList<>();
     private int mPatternNumber;
 
     public CodeToResource() {
         // ピンク、星
-        aryResID.add(R.drawable.pink_star_lr); // 0-3 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.pink_star_ll);
-        aryResID.add(R.drawable.pink_star_ur);
-        aryResID.add(R.drawable.pink_star_ul);
+        aryResId.add(R.drawable.pink_star_lr); // 0-3 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.pink_star_ll);
+        aryResId.add(R.drawable.pink_star_ur);
+        aryResId.add(R.drawable.pink_star_ul);
         // 緑、円
-        aryResID.add(R.drawable.green_circle_lr); // 4-7 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.green_circle_ll);
-        aryResID.add(R.drawable.green_circle_ur);
-        aryResID.add(R.drawable.green_circle_ul);
+        aryResId.add(R.drawable.green_circle_lr); // 4-7 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.green_circle_ll);
+        aryResId.add(R.drawable.green_circle_ur);
+        aryResId.add(R.drawable.green_circle_ul);
         // 青、四角
-        aryResID.add(R.drawable.blue_sguare_lr); // 8-11 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.blue_sguare_ll);
-        aryResID.add(R.drawable.blue_sguare_ur);
-        aryResID.add(R.drawable.blue_sguare_ul);
+        aryResId.add(R.drawable.blue_sguare_lr); // 8-11 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.blue_sguare_ll);
+        aryResId.add(R.drawable.blue_sguare_ur);
+        aryResId.add(R.drawable.blue_sguare_ul);
         // 黄、三角
-        aryResID.add(R.drawable.yellow_triangle_lr); // 12-15 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.yellow_triangle_ll);
-        aryResID.add(R.drawable.yellow_triangle_ur);
-        aryResID.add(R.drawable.yellow_triangle_ul);
+        aryResId.add(R.drawable.yellow_triangle_lr); // 12-15 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.yellow_triangle_ll);
+        aryResId.add(R.drawable.yellow_triangle_ur);
+        aryResId.add(R.drawable.yellow_triangle_ul);
         // 紫、ぶどう
-        aryResID.add(R.drawable.purple_grape_lr); // 16-19 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.purple_grape_ll);
-        aryResID.add(R.drawable.purple_grape_ur);
-        aryResID.add(R.drawable.purple_grape_ul);
+        aryResId.add(R.drawable.purple_grape_lr); // 16-19 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.purple_grape_ll);
+        aryResId.add(R.drawable.purple_grape_ur);
+        aryResId.add(R.drawable.purple_grape_ul);
         // 赤、さくらんぼ
-        aryResID.add(R.drawable.red_cherry_lr); // 20-23 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.red_cherry_ll);
-        aryResID.add(R.drawable.red_cherry_ur);
-        aryResID.add(R.drawable.red_cherry_ul);
+        aryResId.add(R.drawable.red_cherry_lr); // 20-23 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.red_cherry_ll);
+        aryResId.add(R.drawable.red_cherry_ur);
+        aryResId.add(R.drawable.red_cherry_ul);
         // オレンジ、みかん
-        aryResID.add(R.drawable.orange_mikan_lr); // 24-27 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.orange_mikan_ll);
-        aryResID.add(R.drawable.orange_mikan_ur);
-        aryResID.add(R.drawable.orange_mikan_ul);
+        aryResId.add(R.drawable.orange_mikan_lr); // 24-27 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.orange_mikan_ll);
+        aryResId.add(R.drawable.orange_mikan_ur);
+        aryResId.add(R.drawable.orange_mikan_ul);
         // 黒、おにぎり
-        aryResID.add(R.drawable.black_riceball_lr); // 28-31 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.black_riceball_ll);
-        aryResID.add(R.drawable.black_riceball_ur);
-        aryResID.add(R.drawable.black_riceball_ul);
+        aryResId.add(R.drawable.black_riceball_lr); // 28-31 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.black_riceball_ll);
+        aryResId.add(R.drawable.black_riceball_ur);
+        aryResId.add(R.drawable.black_riceball_ul);
         // 黄、バナナ
-        aryResID.add(R.drawable.yellow_banana_lr); // 32-35 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.yellow_banana_ll);
-        aryResID.add(R.drawable.yellow_banana_ur);
-        aryResID.add(R.drawable.yellow_banana_ul);
+        aryResId.add(R.drawable.yellow_banana_lr); // 32-35 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.yellow_banana_ll);
+        aryResId.add(R.drawable.yellow_banana_ur);
+        aryResId.add(R.drawable.yellow_banana_ul);
         // 茶、チョコレート
-        aryResID.add(R.drawable.brown_choco_lr); // 36-39 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.brown_choco_ll);
-        aryResID.add(R.drawable.brown_choco_ur);
-        aryResID.add(R.drawable.brown_choco_ul);
+        aryResId.add(R.drawable.brown_choco_lr); // 36-39 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.brown_choco_ll);
+        aryResId.add(R.drawable.brown_choco_ur);
+        aryResId.add(R.drawable.brown_choco_ul);
         // 白、歯
-        aryResID.add(R.drawable.white_tooth_lr); // 40-43 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.white_tooth_ll);
-        aryResID.add(R.drawable.white_tooth_ur);
-        aryResID.add(R.drawable.white_tooth_ul);
+        aryResId.add(R.drawable.white_tooth_lr); // 40-43 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.white_tooth_ll);
+        aryResId.add(R.drawable.white_tooth_ur);
+        aryResId.add(R.drawable.white_tooth_ul);
         // 紺、三日月
-        aryResID.add(R.drawable.navy_crescent_lr); // 44-47 右下、左下、右上、左上の順とする（格納位置と対応）
-        aryResID.add(R.drawable.navy_crescent_ll);
-        aryResID.add(R.drawable.navy_crescent_ur);
-        aryResID.add(R.drawable.navy_crescent_ul);
+        aryResId.add(R.drawable.navy_crescent_lr); // 44-47 右下、左下、右上、左上の順とする（格納位置と対応）
+        aryResId.add(R.drawable.navy_crescent_ll);
+        aryResId.add(R.drawable.navy_crescent_ur);
+        aryResId.add(R.drawable.navy_crescent_ul);
 
         // 4個セットなので、総数を4で除算。1以上でないとゲームは成立しない
-        mPatternNumber = aryResID.size() / 4;
-        //Log.d("c2r","mPatternNumber="+mPatternNumber+",aryResID size="+aryResID.size());
+        mPatternNumber = aryResId.size() / 4;
+        //Log.d("c2r","mPatternNumber="+mPatternNumber+",aryResId size="+aryResId.size());
     }
 
     // 指定したリソース番号のリソースIDを返す
-    public int getResID(int code) {
-        if (0 <= code && code < aryResID.size()){
-            return aryResID.get(code);
+    public int getResId(int code) {
+        if (0 <= code && code < aryResId.size()){
+            return aryResId.get(code);
         }
         return SELECT_NONE;
     }
