@@ -24,7 +24,7 @@ android {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     //implementation 'com.android.support:appcompat-v7:26.1.0'
-    implementation 'com.android.support:appcompat-v7:27.0.2'
+    implementation 'com.android.support:appcompat-v7:27.1.0'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
@@ -32,6 +32,9 @@ dependencies {
     // Realm 180226
     // https://github.com/realm/realm-android-adapters
     // https://bintray.com/realm/maven/android-adapters
-    implementation 'io.realm:android-adapters:2.1.1'
     // implementation 'io.realm:android-adapters:2.0.0'
+    implementation 'io.realm:android-adapters:2.1.1'
+    // Gson 180309
+    implementation 'com.google.code.gson:gson:2.8.2'
+
 }

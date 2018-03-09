@@ -33,9 +33,12 @@ public class PlayInfo extends RealmObject {
     // デシリアライザ
     // https://qiita.com/Koganes/items/1ab28bf31a49f0cf7dac
     //public int aryImgRes[][];           // 各部位の色と初期位置(但し模様ありのみ)
+    public String jsonAryImgRes;
 
     // 各パネルの模様のID(aryImgResの第1引数)
-    public ArrayList<Integer> imageResources = new ArrayList<>();
+    //public ArrayList<Integer> imageResources = new ArrayList<>();
+    // をJSON化
+    public String jsonResIdList;
 
     // 水色(無い)とピンク(消した)の識別。コード(SELECT_NONE2)追加で対応
 
