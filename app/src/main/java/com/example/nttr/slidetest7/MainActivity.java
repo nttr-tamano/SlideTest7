@@ -164,14 +164,19 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        final String INTENT_NAME_PIECE_X = getString(R.string.intent_name_piece_x);
+        final String INTENT_NAME_PIECE_Y = getString(R.string.intent_name_piece_y);
+        final String INTENT_NAME_MODE = getString(R.string.intent_name_mode);
+
         // Realm使用開始
-        mRealm = Realm.getDefaultInstance();
+        //mRealm = Realm.getDefaultInstance();
 
         // 起動時にDB消去
         // http://y-yagi.tumblr.com/post/123236341530/realm-for-android-%E3%81%A7db%E3%82%92%E5%89%8A%E9%99%A4%E3%81%99%E3%82%8B
-//        RealmConfiguration realmConfig = new RealmConfiguration.Builder(this).build();
-//        Realm.deleteRealm(realmConfig);
-//        Realm realm = Realm.getInstance(realmConfig);
+        // 180310: MyActivity onCreateにて、Builder(this)が使えず
+        RealmConfiguration realmConfig = new RealmConfiguration.Builder().build();
+        Realm.deleteRealm(realmConfig);
+        mRealm = Realm.getInstance(realmConfig);
 
         // debug 格納済データのログ出力
         RealmResults<PlayInfo> results = mRealm.where(PlayInfo.class).findAll();
@@ -188,13 +193,14 @@ public class MainActivity extends AppCompatActivity {
 
         // アクティビティの引数チェック
         mIntent = getIntent();
-        int pieceX = mIntent.getIntExtra("PieceX", 4);
-        int pieceY = mIntent.getIntExtra("PieceY", mPlayInfo.pieceX);
+        int pieceX = mIntent.getIntExtra(INTENT_NAME_PIECE_X, 4);
+        int pieceY = mIntent.getIntExtra(INTENT_NAME_PIECE_Y, mPlayInfo.pieceX);
         // 指定可能な最低値以上へ補正
         mPlayInfo.pieceX = Math.max(pieceX, 3);
         mPlayInfo.pieceY = Math.max(pieceY, 3);
         
-        mPlayInfo.mode = mIntent.getIntExtra("Mode", 0);
+        mPlayInfo.mode = mIntent.getIntExtra(INTENT_NAME_MODE, -1);
+        //TODO: modeが0未満のとき中断(正しく受け渡せていない)
 
         // Viewの設定(主にカスタムフォント)
         AssetManager asset = getAssets();
@@ -1186,9 +1192,9 @@ public class MainActivity extends AppCompatActivity {
         // シリアライザ
         Gson gson = new Gson();
         // Integer型 ArrayList
-        mPlayInfo.jsonResIdList = gson.toJson(resIdList);
+        mPlayInfo.jsonPanelResIdList = gson.toJson(resIdList);
         Log.d("gson-java", resIdList.toString());
-        Log.d("Gson-JSON", "mPlayInfo.jsonResIdList="+mPlayInfo.jsonResIdList);
+        Log.d("Gson-JSON", "mPlayInfo.jsonPanelResIdList="+mPlayInfo.jsonPanelResIdList);
 
         // 参考(ArrayListに戻す場合)
         // https://qiita.com/hisurga/items/a02436e03ea2aba6c6db

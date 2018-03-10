@@ -33,6 +33,7 @@ public class TitleActivity extends AppCompatActivity {
     Button btnEasy;
     Button btnSurvival;
     Button btnHard;
+    Button btnRealmTest;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,6 +127,17 @@ public class TitleActivity extends AppCompatActivity {
                 buttonClick(view, REQUEST_HARD);
             }
         });
+
+        // Realmテスト用
+        btnRealmTest = (Button) findViewById(R.id.btnRealmTest);
+        btnRealmTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(TitleActivity.this,RealmTestActivity.class);
+                startActivity(intent);
+            }
+        });
+
     }
 
     // ボタンクリックで、各モード開始
@@ -133,34 +145,34 @@ public class TitleActivity extends AppCompatActivity {
         // 画面の遷移にはIntentというクラスを使用します。
         // Intentは、Android内でActivity同士やアプリ間の通信を行う際の通信内容を記述するクラスです。
         Intent intent = new Intent(this, MainActivity.class);
-        String intentNamePieceX = getString(R.string.intent_name_piece_x);
-        String intentNamePieceY = getString(R.string.intent_name_piece_y);
-        String intentNameMode = getString(R.string.intent_name_mode);
+        final String INTENT_NAME_PIECE_X = getString(R.string.intent_name_piece_x);
+        final String INTENT_NAME_PIECE_Y = getString(R.string.intent_name_piece_y);
+        final String INTENT_NAME_MODE = getString(R.string.intent_name_mode);
         // Intentに渡す引数
         switch (requestCode) {
             case REQUEST_TRIAL:
                 // とらいある
-                intent.putExtra(intentNamePieceX, 4);   // 固定
-                intent.putExtra(intentNamePieceY, 4);   // 固定
-                intent.putExtra(intentNameMode, INTENT_MODE_TRIAL);
+                intent.putExtra(INTENT_NAME_PIECE_X, 4);   // 固定
+                intent.putExtra(INTENT_NAME_PIECE_Y, 4);   // 固定
+                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_TRIAL);
                 break;
             case REQUEST_EASY:
                 // かんたん
-                intent.putExtra(intentNamePieceX, intentPieceX);
-                intent.putExtra(intentNamePieceY, intentPieceY);
-                intent.putExtra(intentNameMode, INTENT_MODE_EASY);
+                intent.putExtra(INTENT_NAME_PIECE_X, intentPieceX);
+                intent.putExtra(INTENT_NAME_PIECE_Y, intentPieceY);
+                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_EASY);
                 break;
             case REQUEST_SURVIVAL:
                 // いつまでも
-                intent.putExtra(intentNamePieceX, intentPieceX);
-                intent.putExtra(intentNamePieceY, intentPieceY);
-                intent.putExtra(intentNameMode, INTENT_MODE_SURVIVAL);
+                intent.putExtra(INTENT_NAME_PIECE_X, intentPieceX);
+                intent.putExtra(INTENT_NAME_PIECE_Y, intentPieceY);
+                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_SURVIVAL);
                 break;
             case REQUEST_HARD:
                 // むずかしい
-                intent.putExtra(intentNamePieceX, intentPieceX);
-                intent.putExtra(intentNamePieceY, intentPieceY);
-                intent.putExtra(intentNameMode, INTENT_MODE_HARD);
+                intent.putExtra(INTENT_NAME_PIECE_X, intentPieceX);
+                intent.putExtra(INTENT_NAME_PIECE_Y, intentPieceY);
+                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_HARD);
                 break;
         }
 
