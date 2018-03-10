@@ -169,14 +169,7 @@ public class MainActivity extends AppCompatActivity {
         final String INTENT_NAME_MODE = getString(R.string.intent_name_mode);
 
         // Realm使用開始
-        //mRealm = Realm.getDefaultInstance();
-
-        // 起動時にDB消去
-        // http://y-yagi.tumblr.com/post/123236341530/realm-for-android-%E3%81%A7db%E3%82%92%E5%89%8A%E9%99%A4%E3%81%99%E3%82%8B
-        // 180310: MyActivity onCreateにて、Builder(this)が使えず
-        RealmConfiguration realmConfig = new RealmConfiguration.Builder().build();
-        Realm.deleteRealm(realmConfig);
-        mRealm = Realm.getInstance(realmConfig);
+        mRealm = Realm.getDefaultInstance();
 
         // debug 格納済データのログ出力
         RealmResults<PlayInfo> results = mRealm.where(PlayInfo.class).findAll();
