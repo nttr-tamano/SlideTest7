@@ -13,27 +13,44 @@ import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import io.realm.Realm;
+import io.realm.RealmResults;
+
 public class TitleActivity extends AppCompatActivity {
 
-    // Intent
-    final int REQUEST_TRIAL = 1;
-    final int REQUEST_EASY = 2;
-    final int REQUEST_SURVIVAL = 3;
-    final int REQUEST_HARD = 4;
+    // デバッグモード 管理用
+    final boolean flagDebug = true;    // リリース時はfalseにすること
 
-    final int INTENT_MODE_TRIAL   = 0;
-    final int INTENT_MODE_EASY    = 1;
-    final int INTENT_MODE_SURVIVAL = 2;
-    final int INTENT_MODE_HARD    = 3;
+    // Intent
+    // 定数(引数決定用)
+    static final int REQUEST_TRIAL = 1;
+    static final int REQUEST_EASY = 2;
+    static final int REQUEST_SURVIVAL = 3;
+    static final int REQUEST_HARD = 4;
+    static final int REQUEST_RESUME = 5;
+    // 定数(Mode用)
+    static final int INTENT_MODE_TRIAL    = 0;
+    static final int INTENT_MODE_EASY     = 1;
+    static final int INTENT_MODE_SURVIVAL = 2;
+    static final int INTENT_MODE_HARD     = 3;
 
     int intentPieceX = 4;
     int intentPieceY = 4;
 
+    // 中断の管理
+    static final int RETURN_YES = 1;
+    static final int RETURN_NO  = 2;
+    boolean flagExistSuspend = false;
+
+    // Realm
+    Realm mRealm;
+
+    // 画面要素
     Button btnTrial;
     Button btnEasy;
     Button btnSurvival;
     Button btnHard;
-    Button btnRealmTest;
+    Button btnRealmTest;    // Realm確認用
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,6 +119,23 @@ public class TitleActivity extends AppCompatActivity {
         btnHard = (Button) findViewById(R.id.btnHard);
         btnHard.setTypeface(Typeface.createFromAsset(asset, fontName));
 
+        // Realm開始
+        mRealm = Realm.getDefaultInstance();
+
+        // 中断データの有無をチェック
+        mRealm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                // 全レコード取得、リスト化
+                RealmResults<PlayInfo> playInfos
+                        = realm.where(PlayInfo.class).findAll();
+
+                if (playInfos.size() > 0) {
+                    flagExistSuspend = true;
+                }
+            }
+        });
+
         // ボタンクリック時の動作の定義
         btnTrial.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -130,6 +164,9 @@ public class TitleActivity extends AppCompatActivity {
 
         // Realmテスト用
         btnRealmTest = (Button) findViewById(R.id.btnRealmTest);
+        if (flagDebug) {
+            btnRealmTest.setVisibility(View.VISIBLE);
+        }
         btnRealmTest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -181,6 +218,23 @@ public class TitleActivity extends AppCompatActivity {
 
     }
 
+    // アクティビティ終了
+    @Override
+    protected void onDestroy() {
+        // Realm終了
+        mRealm.close();
+        super.onDestroy();
+    }
+
+    // ダイアログからのコールバック
+    // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
+    public void onReturnValue(int value) {
+        // 「はい」のとき
+        if (value == RETURN_YES) {
+            // 中断ステージ再開
+            buttonClick((View)null, REQUEST_RESUME);
+        }
+    }
     // タイトルに戻った時の処理
     // https://qiita.com/kskso9/items/01c8bbb39355af9ec25e
     @Override

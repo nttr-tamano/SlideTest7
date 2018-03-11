@@ -1144,6 +1144,7 @@ public class MainActivity extends AppCompatActivity {
     // ダイアログからのコールバック
     // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
     public void onReturnValue(int value) {
+        // 「はい」のとき
         if (value == RETURN_YES) {
             //TODO アプリ中断処理
             savePlayInfo();
