@@ -20,7 +20,7 @@ public class ResumeDialog extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         // Use the Builder class for convenient dialog construction
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setMessage("中断データがあります。再開しますか？\n再開しない場合、中断データは削除されます。")
+        builder.setMessage("プレイ中のデータがあります。\n再開しますか？別のプレイを開始すると消去されます。")
                 .setPositiveButton("はい", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         // アクティビティを参照
