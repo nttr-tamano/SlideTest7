@@ -24,27 +24,28 @@ public class TitleActivity extends AppCompatActivity {
 
     // Intent
     // 定数(引数決定用)
-    static final int REQUEST_NONE = -1;
-    static final int REQUEST_TRIAL = 1;
-    static final int REQUEST_EASY = 2;
-    static final int REQUEST_SURVIVAL = 3;
-    static final int REQUEST_HARD = 4;
-    static final int REQUEST_RESUME = 5;
-    // 定数(Mode用)
+    static final int REQUEST_NONE     = -1;
+    static final int REQUEST_TRIAL    =  1;
+    static final int REQUEST_EASY     =  2;
+    static final int REQUEST_SURVIVAL =  3;
+    static final int REQUEST_HARD     =  4;
+    static final int REQUEST_RESUME   =  5;
+    // 定数(Mode用) 上記と1:1対応していないので別定数とした
     static final int INTENT_MODE_TRIAL    = 0;
     static final int INTENT_MODE_EASY     = 1;
     static final int INTENT_MODE_SURVIVAL = 2;
     static final int INTENT_MODE_HARD     = 3;
 
     // 中断データを再開しないときの requestCode の値
-    int noResumeCode = 0;
+    int noResumeCode = REQUEST_NONE;
 
-    int intentPieceX = 4;
-    int intentPieceY = 4;
+    int selectPieceX = 4;
+    int selectPieceY = 4;
 
-    // 中断の管理
-    static final int RETURN_YES = 1;
-    static final int RETURN_NO  = 2;
+    // 中断の管理、ダイアログから参照
+    static final int RETURN_RESUME = 1;
+    static final int RETURN_NEW = 2;
+    static final int RETURN_NO  = 3;
     boolean flagExistSuspend = false;
     PlayInfo mPlayInfoResume;
 
@@ -98,8 +99,8 @@ public class TitleActivity extends AppCompatActivity {
                 //Log.d("spinner",item+" is selected.");
 
                 int itemId = (int)spinner.getSelectedItemId();
-                intentPieceX = itemId + 3; // 補正。先頭(0) => 3
-                intentPieceY = intentPieceX; // 当面は同じ値にする
+                selectPieceX = itemId + 3; // 補正。先頭(0) => 3
+                selectPieceY = selectPieceX; // 当面は同じ値にする
             }
 
             //　アイテムが選択されなかった
@@ -187,8 +188,22 @@ public class TitleActivity extends AppCompatActivity {
         selectResumeOrStart((View)null, REQUEST_NONE);
     }
 
-    // 中断データの有無をチェックし、あればフラグ flagExistSuspend を true にする
+    // 中断データがあれば再開確認、なければ新規スタート
+    void selectResumeOrStart(View view, int code) {
+        if (checkSuspend()) {
+            noResumeCode = code;
+            // 中断データを再開するか確認ダイアログを開く → onReturnValue()
+            DialogFragment newFragment = new ResumeDialog();
+            newFragment.show(getFragmentManager(), "resume");
+        } else {
+            buttonClick(view, code);
+        }
+    }
+
+    // 中断データの有無をチェックし、あればtrueを返す
     // 要: Realm開始済
+    // TODO: executeTransactionで記述しているためフラグ flagExistSuspend を
+    // グローバル変数にしているのが整理不足か
     boolean checkSuspend() {
         flagExistSuspend = false;
         mRealm.executeTransaction(new Realm.Transaction() {
@@ -209,61 +224,70 @@ public class TitleActivity extends AppCompatActivity {
         return flagExistSuspend;
     }
 
-    // 中断データのチェック及び再開
-    void selectResumeOrStart(View view, int code) {
-        if (checkSuspend()) {
-            noResumeCode = code;
-            // 中断データを再開するか確認ダイアログを開く → onReturnValue()
-            DialogFragment newFragment = new ResumeDialog();
-            newFragment.show(getFragmentManager(), "resume");
-        } else {
-            buttonClick(view, noResumeCode);
-        }
-    }
-
     // ボタンクリックで、各モード開始
     void buttonClick(View v, int requestCode) {
         // 画面の遷移にはIntentというクラスを使用します。
         // Intentは、Android内でActivity同士やアプリ間の通信を行う際の通信内容を記述するクラスです。
         Intent intent = new Intent(this, MainActivity.class);
+
+        // Intentに渡す引数の名称
         final String INTENT_NAME_PIECE_X = getString(R.string.intent_name_piece_x);
         final String INTENT_NAME_PIECE_Y = getString(R.string.intent_name_piece_y);
         final String INTENT_NAME_MODE = getString(R.string.intent_name_mode);
-        // Intentに渡す引数
+        final String INTENT_NAME_RESUME = "Resume";
+
+        // Intentに渡す引数の値
+        int intentPieceX;
+        int intentPieceY;
+        int intentMode;
+        boolean intentResume;
+
         switch (requestCode) {
             case REQUEST_TRIAL:
                 // とらいある
-                intent.putExtra(INTENT_NAME_PIECE_X, 4);   // 固定
-                intent.putExtra(INTENT_NAME_PIECE_Y, 4);   // 固定
-                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_TRIAL);
+                intentPieceX = 4;
+                intentPieceY = 4;
+                intentMode = INTENT_MODE_TRIAL;
+                intentResume = false;
                 break;
             case REQUEST_EASY:
                 // かんたん
-                intent.putExtra(INTENT_NAME_PIECE_X, intentPieceX);
-                intent.putExtra(INTENT_NAME_PIECE_Y, intentPieceY);
-                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_EASY);
+                intentPieceX = selectPieceX;
+                intentPieceY = selectPieceY;
+                intentMode = INTENT_MODE_EASY;
+                intentResume = false;
                 break;
             case REQUEST_SURVIVAL:
-                // いつまでも
-                intent.putExtra(INTENT_NAME_PIECE_X, intentPieceX);
-                intent.putExtra(INTENT_NAME_PIECE_Y, intentPieceY);
-                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_SURVIVAL);
+                // さばいばる
+                intentPieceX = selectPieceX;
+                intentPieceY = selectPieceY;
+                intentMode = INTENT_MODE_SURVIVAL;
+                intentResume = false;
                 break;
             case REQUEST_HARD:
                 // むずかしい
-                intent.putExtra(INTENT_NAME_PIECE_X, intentPieceX);
-                intent.putExtra(INTENT_NAME_PIECE_Y, intentPieceY);
-                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_HARD);
+                intentPieceX = selectPieceX;
+                intentPieceY = selectPieceY;
+                intentMode = INTENT_MODE_HARD;
+                intentResume = false;
                 break;
             case REQUEST_RESUME:
-                // 再開
-                intent.putExtra(INTENT_NAME_PIECE_X, mPlayInfoResume.pieceX);
-                intent.putExtra(INTENT_NAME_PIECE_Y, mPlayInfoResume.pieceY);
-                intent.putExtra(INTENT_NAME_MODE, mPlayInfoResume.mode);
+                // 再開。上記の他のいずれかのモードになっている
+                intentPieceX = mPlayInfoResume.pieceX;
+                intentPieceY = mPlayInfoResume.pieceY;
+                intentMode = mPlayInfoResume.mode;
+                intentResume = true;    // ここだけ true
                 break;
             default:
+                // 上記以外のモードでは処理中断
                 return;
         }
+
+        // 決定した引数をIntentにセット
+        intent.putExtra(INTENT_NAME_PIECE_X, intentPieceX);
+        intent.putExtra(INTENT_NAME_PIECE_Y, intentPieceY);
+        intent.putExtra(INTENT_NAME_MODE, intentMode);
+        intent.putExtra(INTENT_NAME_RESUME, intentResume);
 
         // startActivityで、Intentの内容を発行します。
         startActivityForResult(intent, requestCode);
@@ -282,9 +306,14 @@ public class TitleActivity extends AppCompatActivity {
     // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
     public void onReturnValue(int value) {
         // 「はい」のとき
-        if (value == RETURN_YES) {
+        if (value == RETURN_RESUME) {
             // 中断ステージ再開
             buttonClick((View)null, REQUEST_RESUME);
+        } else if (value == RETURN_NEW) {
+            // 新規再開
+            if (noResumeCode != REQUEST_NONE) {
+                buttonClick((View)null, noResumeCode);
+            }
         }
     }
     // タイトルに戻った時の処理
