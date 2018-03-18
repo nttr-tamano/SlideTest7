@@ -38,7 +38,7 @@ public class PlayInfo extends RealmObject {
     // 各パネルの模様のID(aryImgResの第1引数)
     //public ArrayList<Integer> imageResources = new ArrayList<>();
     // をJSON化
-    public String jsonResIdList;
+    public String jsonPanelResIdList;
 
     // 水色(無い)とピンク(消した)の識別。コード(SELECT_NONE2)追加で対応
 

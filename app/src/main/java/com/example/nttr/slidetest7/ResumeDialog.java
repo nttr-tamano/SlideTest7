@@ -1,5 +1,6 @@
 package com.example.nttr.slidetest7;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -7,23 +8,23 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 
 /**
- * Created by srugu on 2018/02/27.
+ * Created by tamano on 2018/03/11. Copy from SuspendDialog.java
  */
 
 // ダイアログ
 // https://qiita.com/ux_design_tokyo/items/61ca074566d1570b37d3
 // インポートするsuper classの選定について
 // http://furudate.hatenablog.com/entry/2014/01/09/162421
-public class SuspendDialog extends DialogFragment {
+public class ResumeDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         // Use the Builder class for convenient dialog construction
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setMessage("プレイを中断しますか？")
+        builder.setMessage("プレイ中のデータがあります。\n再開しますか？別のプレイを開始すると消去されます。")
                 .setPositiveButton("はい", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
                         // アクティビティを参照
-                        MainActivity callingActivity = (MainActivity) getActivity();
+                        TitleActivity callingActivity = (TitleActivity) getActivity();
                         // コールバック
                         // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
                         callingActivity.onReturnValue(MainActivity.RETURN_YES);

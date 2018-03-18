@@ -1,5 +1,6 @@
 package com.example.nttr.slidetest7;
 
+import android.app.DialogFragment;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.graphics.Typeface;
@@ -13,26 +14,50 @@ import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import io.realm.Realm;
+import io.realm.RealmResults;
+
 public class TitleActivity extends AppCompatActivity {
 
-    // Intent
-    final int REQUEST_TRIAL = 1;
-    final int REQUEST_EASY = 2;
-    final int REQUEST_SURVIVAL = 3;
-    final int REQUEST_HARD = 4;
+    // デバッグモード 管理用
+    final boolean flagDebug = true;    // リリース時はfalseにすること
 
-    final int INTENT_MODE_TRIAL   = 0;
-    final int INTENT_MODE_EASY    = 1;
-    final int INTENT_MODE_SURVIVAL = 2;
-    final int INTENT_MODE_HARD    = 3;
+    // Intent
+    // 定数(引数決定用)
+    static final int REQUEST_NONE = -1;
+    static final int REQUEST_TRIAL = 1;
+    static final int REQUEST_EASY = 2;
+    static final int REQUEST_SURVIVAL = 3;
+    static final int REQUEST_HARD = 4;
+    static final int REQUEST_RESUME = 5;
+    // 定数(Mode用)
+    static final int INTENT_MODE_TRIAL    = 0;
+    static final int INTENT_MODE_EASY     = 1;
+    static final int INTENT_MODE_SURVIVAL = 2;
+    static final int INTENT_MODE_HARD     = 3;
+
+    // 中断データを再開しないときの requestCode の値
+    int noResumeCode = 0;
 
     int intentPieceX = 4;
     int intentPieceY = 4;
 
+    // 中断の管理
+    static final int RETURN_YES = 1;
+    static final int RETURN_NO  = 2;
+    boolean flagExistSuspend = false;
+    PlayInfo mPlayInfoResume;
+
+    // Realm
+    Realm mRealm;
+
+    // 画面要素
     Button btnTrial;
     Button btnEasy;
     Button btnSurvival;
     Button btnHard;
+    Button btnRealmTest;            // Realm確認用
+    boolean flagCalledOnce = false; // 初回呼び出し済=true、未=false
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,31 +126,99 @@ public class TitleActivity extends AppCompatActivity {
         btnHard = (Button) findViewById(R.id.btnHard);
         btnHard.setTypeface(Typeface.createFromAsset(asset, fontName));
 
+        // Realm開始
+        mRealm = Realm.getDefaultInstance();
+
         // ボタンクリック時の動作の定義
         btnTrial.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                buttonClick(view, REQUEST_TRIAL);
+                selectResumeOrStart(view, REQUEST_TRIAL);
             }
         });
         btnEasy.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                buttonClick(view, REQUEST_EASY);
+                selectResumeOrStart(view, REQUEST_EASY);
             }
         });
         btnSurvival.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                buttonClick(view, REQUEST_SURVIVAL);
+                selectResumeOrStart(view, REQUEST_SURVIVAL);
             }
         });
         btnHard.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                buttonClick(view, REQUEST_HARD);
+                selectResumeOrStart(view, REQUEST_HARD);
             }
         });
+
+        // Realmテスト用
+        btnRealmTest = (Button) findViewById(R.id.btnRealmTest);
+        if (flagDebug) {
+            btnRealmTest.setVisibility(View.VISIBLE);
+        }
+        btnRealmTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(TitleActivity.this,RealmTestActivity.class);
+                startActivity(intent);
+            }
+        });
+
+    }
+
+    // onCreate直後の初回処理用
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+
+        // 初回呼び出しでなければ処理中断
+        if (flagCalledOnce) {
+            return;
+        }
+
+        // 呼び出したのでフラグ更新
+        flagCalledOnce = true;
+
+        // 中断データのチェック及び再開
+        selectResumeOrStart((View)null, REQUEST_NONE);
+    }
+
+    // 中断データの有無をチェックし、あればフラグ flagExistSuspend を true にする
+    // 要: Realm開始済
+    boolean checkSuspend() {
+        flagExistSuspend = false;
+        mRealm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                // 全レコード取得、リスト化
+                // PKなidをキーとしているため、1個しかないはず
+                RealmResults<PlayInfo> playInfos
+                        = realm.where(PlayInfo.class).equalTo("id",0).findAll();
+
+                // 結果が空でなければ、最初のレコードを保持
+                if (playInfos.size() > 0) {
+                    flagExistSuspend = true;
+                    mPlayInfoResume = playInfos.get(0);
+                }
+            }
+        });
+        return flagExistSuspend;
+    }
+
+    // 中断データのチェック及び再開
+    void selectResumeOrStart(View view, int code) {
+        if (checkSuspend()) {
+            noResumeCode = code;
+            // 中断データを再開するか確認ダイアログを開く → onReturnValue()
+            DialogFragment newFragment = new ResumeDialog();
+            newFragment.show(getFragmentManager(), "resume");
+        } else {
+            buttonClick(view, noResumeCode);
+        }
     }
 
     // ボタンクリックで、各モード開始
@@ -133,35 +226,43 @@ public class TitleActivity extends AppCompatActivity {
         // 画面の遷移にはIntentというクラスを使用します。
         // Intentは、Android内でActivity同士やアプリ間の通信を行う際の通信内容を記述するクラスです。
         Intent intent = new Intent(this, MainActivity.class);
-        String intentNamePieceX = getString(R.string.intent_name_piece_x);
-        String intentNamePieceY = getString(R.string.intent_name_piece_y);
-        String intentNameMode = getString(R.string.intent_name_mode);
+        final String INTENT_NAME_PIECE_X = getString(R.string.intent_name_piece_x);
+        final String INTENT_NAME_PIECE_Y = getString(R.string.intent_name_piece_y);
+        final String INTENT_NAME_MODE = getString(R.string.intent_name_mode);
         // Intentに渡す引数
         switch (requestCode) {
             case REQUEST_TRIAL:
                 // とらいある
-                intent.putExtra(intentNamePieceX, 4);   // 固定
-                intent.putExtra(intentNamePieceY, 4);   // 固定
-                intent.putExtra(intentNameMode, INTENT_MODE_TRIAL);
+                intent.putExtra(INTENT_NAME_PIECE_X, 4);   // 固定
+                intent.putExtra(INTENT_NAME_PIECE_Y, 4);   // 固定
+                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_TRIAL);
                 break;
             case REQUEST_EASY:
                 // かんたん
-                intent.putExtra(intentNamePieceX, intentPieceX);
-                intent.putExtra(intentNamePieceY, intentPieceY);
-                intent.putExtra(intentNameMode, INTENT_MODE_EASY);
+                intent.putExtra(INTENT_NAME_PIECE_X, intentPieceX);
+                intent.putExtra(INTENT_NAME_PIECE_Y, intentPieceY);
+                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_EASY);
                 break;
             case REQUEST_SURVIVAL:
                 // いつまでも
-                intent.putExtra(intentNamePieceX, intentPieceX);
-                intent.putExtra(intentNamePieceY, intentPieceY);
-                intent.putExtra(intentNameMode, INTENT_MODE_SURVIVAL);
+                intent.putExtra(INTENT_NAME_PIECE_X, intentPieceX);
+                intent.putExtra(INTENT_NAME_PIECE_Y, intentPieceY);
+                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_SURVIVAL);
                 break;
             case REQUEST_HARD:
                 // むずかしい
-                intent.putExtra(intentNamePieceX, intentPieceX);
-                intent.putExtra(intentNamePieceY, intentPieceY);
-                intent.putExtra(intentNameMode, INTENT_MODE_HARD);
+                intent.putExtra(INTENT_NAME_PIECE_X, intentPieceX);
+                intent.putExtra(INTENT_NAME_PIECE_Y, intentPieceY);
+                intent.putExtra(INTENT_NAME_MODE, INTENT_MODE_HARD);
                 break;
+            case REQUEST_RESUME:
+                // 再開
+                intent.putExtra(INTENT_NAME_PIECE_X, mPlayInfoResume.pieceX);
+                intent.putExtra(INTENT_NAME_PIECE_Y, mPlayInfoResume.pieceY);
+                intent.putExtra(INTENT_NAME_MODE, mPlayInfoResume.mode);
+                break;
+            default:
+                return;
         }
 
         // startActivityで、Intentの内容を発行します。
@@ -169,6 +270,23 @@ public class TitleActivity extends AppCompatActivity {
 
     }
 
+    // アクティビティ終了
+    @Override
+    protected void onDestroy() {
+        // Realm終了
+        mRealm.close();
+        super.onDestroy();
+    }
+
+    // ダイアログからのコールバック
+    // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
+    public void onReturnValue(int value) {
+        // 「はい」のとき
+        if (value == RETURN_YES) {
+            // 中断ステージ再開
+            buttonClick((View)null, REQUEST_RESUME);
+        }
+    }
     // タイトルに戻った時の処理
     // https://qiita.com/kskso9/items/01c8bbb39355af9ec25e
     @Override

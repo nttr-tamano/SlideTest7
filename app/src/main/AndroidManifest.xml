@@ -16,8 +16,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.example.nttr.slidetest7.MainActivity">
-        </activity>
+        <activity android:name=".MainActivity"></activity>
+        <activity android:name=".RealmTestActivity"></activity>
     </application>
 
 </manifest>
