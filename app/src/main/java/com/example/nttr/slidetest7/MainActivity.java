@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     final int INTENT_MODE_SURVIVAL = 2;
     final int INTENT_MODE_HARD    = 3;
     Intent mIntent;
+    boolean flagResume; // 再開=true
 
     // アクティビティ生成時の引数
     // スライドエリアの縦横のマス数
@@ -167,6 +168,7 @@ public class MainActivity extends AppCompatActivity {
         final String INTENT_NAME_PIECE_X = getString(R.string.intent_name_piece_x);
         final String INTENT_NAME_PIECE_Y = getString(R.string.intent_name_piece_y);
         final String INTENT_NAME_MODE = getString(R.string.intent_name_mode);
+        final String INTENT_NAME_RESUME = "Resume";
 
         // Realm使用開始
         mRealm = Realm.getDefaultInstance();
@@ -193,7 +195,10 @@ public class MainActivity extends AppCompatActivity {
         mPlayInfo.pieceY = Math.max(pieceY, 3);
         
         mPlayInfo.mode = mIntent.getIntExtra(INTENT_NAME_MODE, -1);
-        //TODO: modeが0未満のとき中断(正しく受け渡せていない)
+        //TODO: modeが0未満のとき中断(正しく受け渡せていないが、呼ばれないはず)
+
+        // 再開=true
+        flagResume = mIntent.getBooleanExtra(INTENT_NAME_RESUME, false);
 
         // Viewの設定(主にカスタムフォント)
         AssetManager asset = getAssets();
@@ -333,10 +338,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //TODO 中断データがあれば再開する
-
-
-        // 次のステージを開始(初回)
-        loadNewStage();
+        if (flagResume) {
+            // 保存したステージを再開
+            loadResumeStage();
+        } else {
+            // 次のステージを開始(初回)
+            loadNewStage();
+        }
 
         // 再実行しない
         flagSetBitmap = true;
@@ -1405,6 +1413,37 @@ public class MainActivity extends AppCompatActivity {
             destIndex = SELECT_NONE;
         }
         return destIndex;
+    }
+
+    // 中断したステージを再開する
+    void loadResumeStage() {
+        // 最初なので不要？
+        // 各パネルの画像情報のクリア
+        for (CustomView cv: mImagePieces) {
+            cv.setResId(SELECT_NONE);
+            cv.setVisibility(View.INVISIBLE);
+        }
+        // ビットマップリストのクリア
+        mBitmapList.clear();
+
+        final int partNumber = 4;
+        int patternNumber = 0;
+        int panelNumber = 0;
+
+        // mPlayInfoをRealmから読み込み、保持
+        // メモリリーク注意
+
+        // mPlayInfo.jsonPanelResIdList を リストに戻し、mImagePieces メンバのresIdへ格納
+
+        // mPlayInfo.jsonAryImgRes を 2次元配列に戻し、aryImgRes へ格納
+
+        // mBitmapList 再作成
+
+        // mImagePieces の画像を設定、表示
+
+        // スコア更新
+
+        // RealmからmPlayInfoのレコード削除
     }
 
     // 次のステージを開始する

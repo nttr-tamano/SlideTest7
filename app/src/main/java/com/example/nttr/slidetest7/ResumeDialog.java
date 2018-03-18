@@ -20,21 +20,34 @@ public class ResumeDialog extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         // Use the Builder class for convenient dialog construction
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setMessage("プレイ中のデータがあります。\n再開しますか？別のプレイを開始すると消去されます。")
-                .setPositiveButton("はい", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
+        builder.setTitle("＜かくにん＞")
+                .setMessage("プレイ中のデータがあります。\n再開しますか？別のプレイを開始すると消去されます。")
+                .setPositiveButton("さいかい", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
                         // アクティビティを参照
                         TitleActivity callingActivity = (TitleActivity) getActivity();
                         // コールバック
                         // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
-                        callingActivity.onReturnValue(MainActivity.RETURN_YES);
+                        callingActivity.onReturnValue(TitleActivity.RETURN_RESUME);
                     }
                 })
-                .setNegativeButton("キャンセル", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
+                .setNegativeButton("はじめから", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // アクティビティを参照
+                        TitleActivity callingActivity = (TitleActivity) getActivity();
+                        // コールバック
+                        // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
+                        callingActivity.onReturnValue(TitleActivity.RETURN_NEW);
+                    }
+                })
+                .setNeutralButton("キャンセル", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
                         // User cancelled the dialog
                     }
                 });
+                // TODO 起動直後だけ「はじめから」は要らないが、他は同じ
+
         // Create the AlertDialog object and return it
         return builder.create();
     }
