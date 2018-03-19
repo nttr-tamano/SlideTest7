@@ -28,7 +28,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1432,8 +1434,49 @@ public class MainActivity extends AppCompatActivity {
 
         // mPlayInfoをRealmから読み込み、保持
         // メモリリーク注意
+        // https://stackoverflow.com/questions/30115021/how-to-convert-realmresults-object-to-realmlist
+        // https://realm.io/docs/java/5.0.0/api/
+        mRealm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                // 全レコード取得、リスト化
+                // PKなidをキーとしているため、1個しかないはず
+                RealmResults<PlayInfo> playInfos
+                        = realm.where(PlayInfo.class).equalTo("id",0).findAll();
+
+                // 結果が空でなければ、最初のレコードをコピーして(unmanagedで)保持
+                if (playInfos.size() > 0) {
+                    mPlayInfo = realm.copyFromRealm(playInfos.get(0));
+                }
+            }
+        });
+
+        Log.d("realm", mPlayInfo.toString());
+        // Realm読み取り結果チェック。読み込めなければ中断
+        if (mPlayInfo == null) {
+            //TODO 警告ダイアログ
+            //TODO newLoadStage()を呼ぶ？
+            return;
+        }
+
+        // JSON→Java Object
+        Gson gson = new Gson();
 
         // mPlayInfo.jsonPanelResIdList を リストに戻し、mImagePieces メンバのresIdへ格納
+        ArrayList<Integer> resIdList = new ArrayList<>();
+
+        Type listTypeArrayInt = new TypeToken<ArrayList<Integer>>(){}.getType();
+        resIdList = gson.fromJson(mPlayInfo.jsonPanelResIdList,listTypeArrayInt);
+        Log.d("gson-java", resIdList.toString());
+
+        // パネルへセット
+        int panelMax = mImagePieces.size();
+        for (int i = 0; i < panelMax; i++) {
+            //int resId = mImagePieces.get(i).getResId();
+            //resIdList.add(resId);
+            // 1パネルずつ resId を設定
+            mImagePieces.get(i).setResId(resIdList.get(i));
+        }
 
         // mPlayInfo.jsonAryImgRes を 2次元配列に戻し、aryImgRes へ格納
 
