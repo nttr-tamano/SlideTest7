@@ -18,6 +18,10 @@ import android.os.Bundle;
 public class ResumeDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
+
+        // 引数: はじめからボタンの有無の決定用
+        int code = getArguments().getInt("requestCode");
+
         // Use the Builder class for convenient dialog construction
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle("＜かくにん＞")
@@ -30,23 +34,27 @@ public class ResumeDialog extends DialogFragment {
                         // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
                         callingActivity.onReturnValue(TitleActivity.RETURN_RESUME);
                     }
-                })
-                .setNegativeButton("はじめから", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // アクティビティを参照
-                        TitleActivity callingActivity = (TitleActivity) getActivity();
-                        // コールバック
-                        // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
-                        callingActivity.onReturnValue(TitleActivity.RETURN_NEW);
-                    }
-                })
-                .setNeutralButton("キャンセル", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        // User cancelled the dialog
-                    }
                 });
-                // TODO 起動直後だけ「はじめから」は要らないが、他は同じ
+
+        // 起動直後(=REQUEST_NONE)だけ「はじめから」は不要だが、他は同じ
+        if (code != TitleActivity.REQUEST_NONE) {
+            builder.setNegativeButton("はじめから", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    // アクティビティを参照
+                    TitleActivity callingActivity = (TitleActivity) getActivity();
+                    // コールバック
+                    // http://www.ipentec.com/document/android-custom-dialog-using-dialogfragment-return-value
+                    callingActivity.onReturnValue(TitleActivity.RETURN_NEW);
+                }
+            });
+        }
+
+        builder.setNeutralButton("キャンセル", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                // User cancelled the dialog
+            }
+        });
 
         // Create the AlertDialog object and return it
         return builder.create();
