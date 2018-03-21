@@ -20,7 +20,7 @@ import io.realm.RealmResults;
 public class TitleActivity extends AppCompatActivity {
 
     // デバッグモード 管理用
-    final boolean flagDebug = true;    // リリース時はfalseにすること
+    final boolean flagDebug = false; //true;    // リリース時はfalseにすること
 
     // Intent
     // 定数(引数決定用)
@@ -193,7 +193,12 @@ public class TitleActivity extends AppCompatActivity {
         if (checkSuspend()) {
             noResumeCode = code;
             // 中断データを再開するか確認ダイアログを開く → onReturnValue()
+            // code==REQUEST_NONEを引き渡し、「はじめから」を表示させない
+            // http://creativeindustry.seesaa.net/article/393955294.html
             DialogFragment newFragment = new ResumeDialog();
+            Bundle bundle = new Bundle();
+            bundle.putInt("requestCode", code);
+            newFragment.setArguments(bundle);
             newFragment.show(getFragmentManager(), "resume");
         } else {
             buttonClick(view, code);

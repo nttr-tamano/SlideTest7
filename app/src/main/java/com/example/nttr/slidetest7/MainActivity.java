@@ -28,7 +28,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -500,9 +502,8 @@ public class MainActivity extends AppCompatActivity {
 
                 // 模様のマッチが成立したらステージクリア判定
                 if (flagMatch1 || flagMatch2) {
-                    boolean flagClear = checkStageClear();
                     // ステージクリアしたら、次へボタンを表示
-                    if (flagClear) {
+                    if (checkStageClear()) {
                         updateScore(SCORE_CLEAR + (mPlayInfo.stageNumber-1) * 2, false);
                         mBtnNextStage.setVisibility(View.VISIBLE);
                     }
@@ -1132,6 +1133,8 @@ public class MainActivity extends AppCompatActivity {
             mAnimator.pause();
         }
 
+        //TODO 戻るボタンで中断せずにアプリを終了させると、中断データは残らない。残すなら、ここか。要フラグ？
+
         // onPauseではsuperより前に追記した方が良いとのこと（ホサカさん）
         super.onPause();
     }
@@ -1229,6 +1232,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // スコア更新
+    // scoreが0なら、すこあは変化しない
     @SuppressLint("DefaultLocale")
     void updateScore(int score, boolean flagMove) {
         if (flagMove) {
@@ -1423,8 +1427,6 @@ public class MainActivity extends AppCompatActivity {
             cv.setResId(SELECT_NONE);
             cv.setVisibility(View.INVISIBLE);
         }
-        // ビットマップリストのクリア
-        mBitmapList.clear();
 
         final int partNumber = 4;
         int patternNumber = 0;
@@ -1432,18 +1434,94 @@ public class MainActivity extends AppCompatActivity {
 
         // mPlayInfoをRealmから読み込み、保持
         // メモリリーク注意
+        // https://stackoverflow.com/questions/30115021/how-to-convert-realmresults-object-to-realmlist
+        // https://realm.io/docs/java/5.0.0/api/
+        mRealm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                // 全レコード取得、リスト化
+                // PKなidをキーとしているため、1個しかないはず
+                RealmResults<PlayInfo> playInfos
+                        = realm.where(PlayInfo.class).equalTo("id",0).findAll();
 
-        // mPlayInfo.jsonPanelResIdList を リストに戻し、mImagePieces メンバのresIdへ格納
+                // 結果が空でなければ、最初のレコードをコピーして(unmanagedで)保持
+                if (playInfos.size() > 0) {
+                    mPlayInfo = realm.copyFromRealm(playInfos.get(0));
+                }
+            }
+        });
+
+        Log.d("realm", mPlayInfo.toString());
+        // Realm読み取り結果チェック。読み込めなければ中断
+        if (mPlayInfo == null) {
+            //TODO 警告ダイアログ
+            //TODO newLoadStage()を呼ぶ？
+            return;
+        }
+
+        // JSON→Java Object
+        Gson gson = new Gson();
 
         // mPlayInfo.jsonAryImgRes を 2次元配列に戻し、aryImgRes へ格納
+        aryImgRes = gson.fromJson(mPlayInfo.jsonAryImgRes, int[][].class);
 
         // mBitmapList 再作成
+        createBitmapList();
+
+        // mPlayInfo.jsonPanelResIdList を リストに戻し、
+        // mImagePieces メンバのresIdへ格納。画像があれば設置し、表示する
+        Type listTypeResIdList = new TypeToken<ArrayList<Integer>>(){}.getType();
+        ArrayList<Integer> resIdList = gson.fromJson(mPlayInfo.jsonPanelResIdList,listTypeResIdList);
+        Log.d("gson-java", resIdList.toString());
 
         // mImagePieces の画像を設定、表示
+        // パネルへセット
+        int panelMax = mImagePieces.size();
+        for (int i = 0; i < panelMax; i++) {
+            // resId を取得
+            int resId = resIdList.get(i);
 
-        // スコア更新
+            // パネルへ resId を設定
+            CustomView destImageView = mImagePieces.get(i);
+            destImageView.setResId(resId);
+
+            // 画像があれば設置
+            if (resId > SELECT_NONE) {
+                destImageView.setImageBitmap(mBitmapList.get(resId));
+                destImageView.setVisibility(View.VISIBLE);
+            }
+        }
+
+        // スコアを表示
+        updateScore(0, false);
+
+        // 終了判定
+        // ステージクリアしたら、次へボタンを表示
+        if (checkStageClear()) {
+            updateScore(SCORE_CLEAR + (mPlayInfo.stageNumber-1) * 2, false);
+            mBtnNextStage.setVisibility(View.VISIBLE);
+        }
 
         // RealmからmPlayInfoのレコード削除
+        // ========== Copy from savePlayInfo() ==========
+        // 既存の全レコードを取得し、削除する
+        mRealm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                // 全レコード取得、リスト化
+                RealmResults<PlayInfo> playInfos
+                        = realm.where(PlayInfo.class).findAll();
+
+                // 削除
+                for (PlayInfo playInfo:
+                        playInfos) {
+                    // 1レコード削除
+                    playInfo.deleteFromRealm();
+                }
+            }
+        });
+        // /========== Copy from savePlayInfo() ==========
+
     }
 
     // 次のステージを開始する
@@ -1541,6 +1619,25 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
+        // ビットマップリストの生成
+        createBitmapList();
+
+        // 該当CustomViewへ画像を設置、表示
+        for (int i = 0; i < aryImgRes.length; i++) {
+            CustomView destImageView = mImagePieces.get(aryImgRes[i][4]);
+            destImageView.setImageBitmap(mBitmapList.get(i));
+            destImageView.setResId(i);
+            destImageView.setVisibility(View.VISIBLE);
+        }
+
+    }
+
+    // ビットマップリスト mBitmapList の生成
+    void createBitmapList() {
+
+        // ビットマップリストのクリア
+        mBitmapList.clear();
+
         // 表示するビットマップ群の定義
         // ビュー内の4箇所に、配置すべき画像情報を加工して配置したビットマップを生成
         // CustomViewは全部同じサイズのはずなので、サンプルとして左上1個を持ってくる
@@ -1586,16 +1683,24 @@ public class MainActivity extends AppCompatActivity {
                         // View上に描画
                         canvas.drawBitmap(bitmapWork2,
                                 viewWidthHalf * i, viewHeightHalf * j, (Paint)null);
+
+                    } else if (aryImgRes[k][partId] == SELECT_NONE2) {
+                        // ========== Copy from updateImagePart() ==========
+                        // 消えた後の色だけの画像を生成。空のときと異なる色にしている
+                        bitmapWork2 = Bitmap.createBitmap(viewWidthHalf, viewHeightHalf,
+                                Bitmap.Config.ARGB_8888);
+                        Canvas canvas2 = new Canvas(bitmapWork2);
+                        // 定義した色を使用
+                        // http://furudate.hatenablog.com/entry/2013/06/19/010953
+                        canvas2.drawColor(resources.getColor(mVanishColor));
+                        // View上に描画
+                        canvas.drawBitmap(bitmapWork2,
+                                viewWidthHalf * i, viewHeightHalf * j, (Paint)null);
+                        // /========== Copy from updateImagePart() ==========
+
                     }
                 }
             }
-
-            // 該当CustomViewへ画像を設置
-            CustomView destImageView = mImagePieces.get(aryImgRes[k][4]);
-            destImageView.setImageBitmap(bitmapBase);
-            destImageView.setResId(k);
-            destImageView.setVisibility(View.VISIBLE);
-            //TODO:
             mBitmapList.add(bitmapBase);
         }
 
